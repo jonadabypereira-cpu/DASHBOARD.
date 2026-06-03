@@ -1,0 +1,66 @@
+/* Limpeza e padronização */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: sans-serif; background-color: #0d1117; color: white; padding: 10px; font-size: 18px; }
+
+/* Cards compactos */
+.card {
+    background-color: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+.card h2 {
+    font-size: 1rem;
+    margin-bottom: 8px;
+    color: #c9d1d9;
+}
+
+/* Grids compactos (ajuste para caber na tela) */
+.grid-blocos, .grid-resultados {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 8px;
+}
+
+/* Inputs focados em legibilidade */
+.input-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.input-group label {
+    font-size: 0.85rem;
+    font-weight: bold;
+    margin-bottom: 2px;
+}
+
+.input-group input {
+    background-color: #0d1117;
+    border: 1px solid #30363d;
+    color: white;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 1.1rem; /* Letra maior */
+    width: 100%;
+}
+
+/* Botão principal */
+.btnSubmit {
+    background-color: #2da44e;
+    color: rgb(255, 255, 255);
+    border: none;
+    padding: 12px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 10px;
+}
+.grid-resultados {
+    display: grid;
+    /* Isso força o grid a ter sempre 5 colunas de tamanhos iguais */
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+}

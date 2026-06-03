@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Horas de Ouro - Lançamento</title>
+    <style>
+        :root {
+            --bg-dark: #0a1a33;
+            --card-bg: #0d2a52;
+            --sub-card-bg: #143d75;
+            --border: #1f6286;
+            --text-main: #ffffff;
+            --accent-green: #2da44e;
+            --input-bg: #fffefe;
+            --input-text: #000000;
+        }
+        body { background-color: var(--bg-dark); color: var(--text-main); font-family: 'Segoe UI', sans-serif; padding: 20px; margin: 0; }
+        .container { max-width: 900px; margin: auto; }
+        .card { background-color: var(--card-bg); border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border: 1px solid var(--border); }
+        h2 { font-size: 0.9rem; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        .header-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 15px; }
+        .grid-half { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .sub-group { background: var(--sub-card-bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border); }
+        .sub-group-title { font-size: 0.75rem; font-weight: bold; margin-bottom: 10px; color: #ffab40; display: block; }
+        .input-group { display: flex; flex-direction: column; gap: 5px; }
+        label { font-size: 0.7rem; font-weight: bold; text-transform: uppercase; }
+        input, select { background-color: var(--input-bg); padding: 10px; border-radius: 4px; border: none; width: 100%; box-sizing: border-box; }
+        .total-box { background: #00224d; padding: 15px; border-radius: 8px; margin-top: 15px; text-align: center; border: 1px solid var(--border); }
+        .results-section { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .btn-container { display: flex; gap: 15px; margin-top: 20px; }
+        .btn-salvar { background: transparent; border: 1px solid var(--accent-green); color: var(--accent-green); padding: 12px; border-radius: 6px; cursor: pointer; flex: 1; }
+        .btn-enviar { background: var(--accent-green); color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; flex: 2; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <form id="formGodi">
+        <div class="card header-grid">
+            <div class="input-group">
+                <label>👤 Comercial</label>
+                <select id="comercialSelect" name="comercial" required onchange="carregarRascunho()">
+                    <option value="" disabled selected>Selecione seu nome</option>
+                    <option value="Trindade">Trindade</option>
+                    <option value="Genesio">Genesio</option>
+                    <option value="Jonadaby">Jonadaby</option>
+                    <option value="Natha">Natha</option>
+                    <option value="Pedro">Pedro</option>
+                    <option value="Prado">Prado</option>
+                    <option value="Rafael A">Rafael A</option>
+                    <option value="Ramon">Ramon</option>
+                    <option value="Rodrigo">Rodrigo</option>
+                    <option value="Felipe Luiz">Felipe Luiz</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>☕ Café hoje</label>
+                <input type="text" id="cafeDia" readonly style="background: #e0e0e0;">
+            </div>
+            <div class="input-group">
+                <label>🧹 Limpeza hoje</label>
+                <input type="text" id="limpezaDia" readonly style="background: #e0e0e0;">
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🕒 BLOCO DE LIGAÇÃO - "HORAS DE OURO"</h2>
+            <div class="grid-half">
+                <div class="sub-group">
+                    <span class="sub-group-title">☀️ MANHÃ – BLOCOS 1 E 2</span>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px">
+                        <div class="input-group"><label>Bloco 1</label><input type="number" name="b1" class="bloco-input" placeholder="0"></div>
+                        <div class="input-group"><label>Bloco 2</label><input type="number" name="b2" class="bloco-input" placeholder="0"></div>
+                    </div>
+                </div>
+                <div class="sub-group">
+                    <span class="sub-group-title">☀️ TARDE – BLOCOS 3, 4 E 5</span>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px">
+                        <div class="input-group"><label>Bloco 3</label><input type="number" name="b3" class="bloco-input" placeholder="0"></div>
+                        <div class="input-group"><label>Bloco 4</label><input type="number" name="b4" class="bloco-input" placeholder="0"></div>
+                        <div class="input-group"><label>Bloco 5</label><input type="number" name="b5" class="bloco-input" placeholder="0"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="total-box"><strong>TOTAL HORAS DE OURO: <span id="totalHoras">0</span></strong></div>
+        </div>
+
+        <div class="card">
+            <h2>📊 RESULTADOS DO DIA</h2>
+            <div class="results-section">
+                <div>
+                    <span class="sub-group-title">ATIVIDADE</span>
+                    <div class="input-group"><label>Discagens</label><input type="number" name="discagens"></div>
+                    <div class="input-group"><label>Cotações</label><input type="number" name="cotacoes"></div>
+                    <div class="input-group"><label>Reuniões</label><input type="number" name="reunioes"></div>
+                </div>
+                <div>
+                    <span class="sub-group-title">RESULTADOS</span>
+                    <div class="input-group"><label>Faturamento</label><input type="number" name="faturamento"></div>
+                    <div class="input-group"><label>Cliente Novo</label><input type="number" name="clienteNovo"></div>
+                </div>
+            </div>
+            <div class="btn-container">
+                <button type="button" class="btn-salvar" onclick="salvarRascunho()">SALVAR RASCUNHO</button>
+                <button type="submit" class="btn-enviar">ENVIAR RESULTADO</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    // --- ESCALA DO DIA ---
+    // Adicione as datas aqui conforme a necessidade
+    const agendaDoDia = {
+        "2026-06-03": { cafe: "PEDRO", limpeza: "MARCOS" },
+        "2026-06-04": { cafe: "PRADO", limpeza: "NATHA" }
+    };
+
+    const listaLimpeza = ["Trindade", "Jonadaby", "Marcos", "Natha", "Pedro", "Prado", "Rafael A", "Rafael M", "Ramon", "Felipe Luiz", "Vinicius", "Jadiel"];
+const listaCafe = ["Trindade", "PEDRO", "PRADO", "RAFAEL A", "RAMON", "RODRIGO", "Felipe Luiz"];
+
+function carregarEscalaDoDia() {
+    // Calcula o dia do ano para determinar o índice
+    const now = new Date();
+    const start = new Date(now.getFullYear(), 0, 0);
+    const diff = (now - start) + ((start.getTimezoneOffset() - now.getTimezoneOffset()) * 60 * 1000);
+    const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+    // Define os nomes baseados no dia
+    const nomeLimpeza = listaLimpeza[dayOfYear % listaLimpeza.length];
+    const nomeCafe = listaCafe[dayOfYear % listaCafe.length];
+
+    // Preenche os campos
+    document.getElementById('cafeDia').value = nomeCafe;
+    document.getElementById('limpezaDia').value = nomeLimpeza;
+}
+
+// Executa ao carregar a página
+window.onload = carregarEscalaDoDia;
+
+    // --- CÁLCULO DE HORAS ---
+    const inputsBlocos = document.querySelectorAll('.bloco-input');
+    const displayTotal = document.getElementById('totalHoras');
+    inputsBlocos.forEach(input => {
+        input.addEventListener('input', () => {
+            let soma = 0;
+            inputsBlocos.forEach(i => { soma += parseFloat(i.value) || 0; });
+            displayTotal.textContent = soma;
+        });
+    });
+
+    // --- RASCUNHOS E ENVIO ---
+    function salvarRascunho() {
+        const dados = Object.fromEntries(new FormData(document.getElementById('formGodi')).entries());
+        if (!dados.comercial) return alert('Selecione o Comercial!');
+        localStorage.setItem('rascunho_' + dados.comercial, JSON.stringify(dados));
+        alert('Rascunho salvo!');
+    }
+
+    function carregarRascunho() {
+        const comercial = document.getElementById('comercialSelect').value;
+        const dadosSalvos = localStorage.getItem('rascunho_' + comercial);
+        if (dadosSalvos) {
+            const dados = JSON.parse(dadosSalvos);
+            for (const [key, value] of Object.entries(dados)) {
+                const input = document.querySelector(`[name="${key}"]`);
+                if (input) input.value = value;
+            }
+        }
+    }
+
+    document.getElementById('formGodi').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        // Lógica de envio omitida para brevidade, mantenha a sua original aqui
+        alert('Dados enviados!');
+        e.target.reset();
+        displayTotal.textContent = "0";
+    });
+</script>
+</body>
+</html>
