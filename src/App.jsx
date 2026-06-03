@@ -78,8 +78,10 @@ function App() {
   }, []);
 
   const carregarDados = async () => {
-    try {
-      const resposta = await axios.get(`${API_URL}/api/dados`);
+  try {
+    // O Google entende parâmetros após o '?'
+    const resposta = await axios.get(`${API_URL}?action=dados`);
+    
       if (Array.isArray(resposta.data) && resposta.data.length > 1) {
         setDados(resposta.data);
         const linhaDados = resposta.data[1];
