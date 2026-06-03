@@ -5,7 +5,7 @@ import RankingCard from './RankingCard';
 import './App.css';
 import DesvioChart from './DesvioChart';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://192.168.10.234:3001';
+const API_URL = import.meta.env.VITE_API_URL || 'https://script.google.com/macros/s/AKfycbxTjGxybDbkXqU9RF9sJKw2N5X051JZjByCvYsxqFsTDeUiC5QrpyzOwwD0281dCIYA/exec';
 console.log("URL de Conexão do Axios:", API_URL); // ADICIONE ESTA LINHA
 
 const parseBrazilianCurrency = (valor) => {
