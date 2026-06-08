@@ -1,263 +1,261 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
-import axios from 'axios';
-import GaugeChart from './GaugeChart';
-import RankingCard from './RankingCard';
-import './App.css';
-import DesvioChart from './DesvioChart';
+/* ============================================================
+   GODI · THE PROCESS — dashboard
+   Layout de tela cheia + paleta contida + tipografia para TV
+   ============================================================ */
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://script.google.com/macros/s/AKfycbxTjGxybDbkXqU9RF9sJKw2N5X051JZjByCvYsxqFsTDeUiC5QrpyzOwwD0281dCIYA/exec';
-console.log("URL de Conexão do Axios:", API_URL);
-
-const parseBrazilianCurrency = (valor) => {
-  if (!valor) return 0;
-  const limpo = valor.toString().replace(/\./g, '').replace(',', '.');
-  return parseFloat(limpo) || 0;
-};
-
-const processarDadosParaGrafico = (dados, metaMensal) => {
-  if (!dados || dados.length < 2) return [];
-  const hoje = new Date();
-  const mesAtual = hoje.getMonth() + 1;
-  const anoAtual = hoje.getFullYear();
-  const vendasPorDia = {};
-  const COL_FATURAMENTO = 4;
-
-  dados.slice(1).forEach((row) => {
-    const rawDate = row[0];
-    if (!rawDate) return;
-    const [diaStr, mesStr, anoStr] = rawDate.split('/');
-    const dia = parseInt(diaStr, 10);
-    const mes = parseInt(mesStr, 10);
-    const ano = parseInt(anoStr, 10);
-    if (mes === mesAtual && ano === anoAtual) {
-      const valor = parseBrazilianCurrency(row[COL_FATURAMENTO]);
-      vendasPorDia[dia] = (vendasPorDia[dia] || 0) + valor;
-    }
-  });
-
-  const ultimoDiaDoMes = new Date(anoAtual, mesAtual, 0).getDate();
-  const metaDiaria = metaMensal / ultimoDiaDoMes;
-  let acumuladoReal = 0;
-  const resultadoFinal = [];
-  for (let i = 1; i <= ultimoDiaDoMes; i++) {
-    acumuladoReal += (vendasPorDia[i] || 0);
-    resultadoFinal.push({ dia: i.toString(), meta: Math.round(metaDiaria * i), alcancado: Math.round(acumuladoReal) });
-  }
-  return resultadoFinal;
-};
-
-function App() {
-  const [topFaturamento, setTopFaturamento] = useState([]);
-  const [topLigacoes, setTopLigacoes] = useState([]);
-  const [nomeDestaque, setNomeDestaque] = useState("Aguardando...");
-  const [dados, setDados] = useState([]);
-  const [metaMensal, setMetaMensal] = useState(0);
-  const [totalFaturamento, setTotalFaturamento] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [manualEndTime, setManualEndTime] = useState(null);
-  const [status, setStatus] = useState({ blocoAtual: "Aguardando...", tempoRestante: "00:00", porcentagem: 0, mensagem: "Clique em INICIAR" });
-
-  // Áudio inicializado de forma preguiçosa (não recria a cada render)
-  const startSound = useRef(null);
-  const endSound = useRef(null);
-  if (!startSound.current) startSound.current = new Audio('/start.mp3');
-  if (!endSound.current) endSound.current = new Audio('/end.mp3');
-  const hasPlayedEndSound = useRef(false);
-
-  const blocos = [
-    { nome: "1º BLOCO - Qualificação", inicio: "09:00", fim: "10:00" },
-    { nome: "2º BLOCO - Potenciais", inicio: "10:30", fim: "11:30" },
-    { nome: "3º BLOCO - Qualificação", inicio: "13:45", fim: "14:45" },
-    { nome: "4º BLOCO - Potenciais", inicio: "15:00", fim: "16:00" },
-    { nome: "5º BLOCO - Hibrido", inicio: "16:30", fim: "17:30" },
-  ];
-
-  const percentualMeta = metaMensal > 0 ? Math.min(100, Math.round((totalFaturamento / metaMensal) * 100)) : 0;
-
-  // Só recalcula o gráfico quando os dados ou a meta mudam — não a cada segundo do relógio
-  const dadosGrafico = useMemo(
-    () => processarDadosParaGrafico(dados, metaMensal),
-    [dados, metaMensal]
-  );
-
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const carregarDados = async () => {
-    try {
-      // O Google entende parâmetros após o '?'
-      const resposta = await axios.get(`${API_URL}?action=dados`);
-      if (Array.isArray(resposta.data) && resposta.data.length > 1) {
-        setDados(resposta.data);
-        const linhaDados = resposta.data[1];
-        setMetaMensal(parseBrazilianCurrency(linhaDados[14]));
-        setTotalFaturamento(parseBrazilianCurrency(linhaDados[15]));
-      }
-    } catch (error) { console.error("ERRO AO CARREGAR:", error); }
-  };
-
-  // Carrega ao montar e recarrega a cada 30 segundos
-  useEffect(() => {
-    carregarDados();
-    const interval = setInterval(carregarDados, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Processa os dados: ranking de faturamento e média de blocos por comercial
-  useEffect(() => {
-    if (!dados || dados.length <= 1) return;
-    const acumulado = {};
-    let destaqueEncontrado = "Nenhum";
-
-    const num = (v) => Number(v) || 0;
-
-    dados.slice(1).forEach((row) => {
-      const nome = row[1];
-      const fat = parseBrazilianCurrency(row[4]);
-      // soma dos blocos b1..b5 (colunas F a J = índices 5 a 9)
-      const blocosDia = num(row[5]) + num(row[6]) + num(row[7]) + num(row[8]) + num(row[9]);
-      const dest = row[13];
-
-      if (nome) {
-        if (!acumulado[nome]) acumulado[nome] = { fat: 0, blocos: 0, dias: 0 };
-        acumulado[nome].fat += fat;
-        acumulado[nome].blocos += blocosDia;
-        acumulado[nome].dias += 1; // cada linha conta como um dia lançado
-      }
-      if (dest && dest.toString().trim() !== "" && dest !== "0" && isNaN(dest)) {
-        destaqueEncontrado = dest;
-      }
-    });
-
-    const lista = Object.keys(acumulado).map((nome) => ({
-      nome,
-      fat: acumulado[nome].fat,
-      media: acumulado[nome].dias > 0 ? acumulado[nome].blocos / acumulado[nome].dias : 0,
-    }));
-    if (lista.length === 0) return;
-
-    const rankingFat = [...lista].sort((a, b) => b.fat - a.fat);
-    const maxFat = rankingFat[0].fat || 1;
-    setTopFaturamento(rankingFat.slice(0, 3).map(i => ({
-      nome: i.nome,
-      valor: i.fat > 0 ? Math.round((i.fat / maxFat) * 100) : 0,
-    })));
-
-    const rankingMedia = [...lista].sort((a, b) => b.media - a.media);
-    const maxMedia = rankingMedia[0].media || 1;
-    setTopLigacoes(rankingMedia.slice(0, 3).map(i => ({
-      nome: i.nome,
-      valor: i.media > 0 ? Math.round((i.media / maxMedia) * 100) : 0,
-      total: i.media.toFixed(1), // mostra a média com 1 casa
-    })));
-
-    setNomeDestaque(destaqueEncontrado);
-  }, [dados]);
-
-  const calcularTempo = () => {
-    const agora = new Date();
-    let horaFim = null;
-    let nomeBloco = "";
-
-    if (manualEndTime) {
-      horaFim = manualEndTime;
-      nomeBloco = "SESSÃO MANUAL";
-    } else {
-      const tempoDecimal = agora.getHours() + (agora.getMinutes() / 60);
-      const blocoAtual = blocos.find(b => {
-        const [hI, mI] = b.inicio.split(':').map(Number);
-        const [hF, mF] = b.fim.split(':').map(Number);
-        return tempoDecimal >= (hI + mI / 60) && tempoDecimal < (hF + mF / 60);
-      });
-      if (blocoAtual) {
-        const [hF, mF] = blocoAtual.fim.split(':').map(Number);
-        horaFim = new Date();
-        horaFim.setHours(hF, mF, 0, 0);
-        nomeBloco = blocoAtual.nome;
-      }
-    }
-
-    if (horaFim) {
-      const diff = horaFim - agora;
-      if (diff <= 0) {
-        if (!hasPlayedEndSound.current) {
-          endSound.current.play().catch(e => console.log("Áudio bloqueado", e));
-          hasPlayedEndSound.current = true;
-        }
-        setManualEndTime(null);
-        return;
-      }
-      hasPlayedEndSound.current = false;
-      const minutos = Math.floor((diff / 1000 / 60) % 60);
-      const segundos = Math.floor((diff / 1000) % 60);
-      const progresso = 100 - ((diff / (60 * 60 * 1000)) * 100);
-      setStatus({ blocoAtual: nomeBloco, tempoRestante: `${String(minutos).padStart(2, '0')}:${String(segundos).padStart(2, '0')}`, porcentagem: Math.min(100, Math.max(0, progresso)), mensagem: "" });
-    } else {
-      setStatus({ blocoAtual: "INTERVALO", tempoRestante: "00:00", porcentagem: 100, mensagem: "Se prepare para o próximo bloco!" });
-    }
-  };
-
-  useEffect(() => {
-    if (isPaused) return;
-    calcularTempo();
-    const timer = setInterval(calcularTempo, 1000);
-    return () => clearInterval(timer);
-  }, [isPaused, manualEndTime]);
-
-  const handleIniciar = () => {
-    setIsPaused(false);
-    hasPlayedEndSound.current = false;
-    setManualEndTime(new Date(Date.now() + 60 * 60 * 1000));
-    startSound.current.play().catch(e => console.log("Áudio bloqueado", e));
-  };
-
-  const handleReiniciar = () => {
-    setManualEndTime(null);
-    setIsPaused(false);
-    setStatus({ blocoAtual: "Aguardando...", tempoRestante: "00:00", porcentagem: 0, mensagem: "Sistema reiniciado" });
-    carregarDados();
-  };
-
-  return (
-    <div className="dashboard-container">
-      <header className="header">
-        <div className="header-left"><img src="/logo.png" alt="Logo" className="logo-img" /></div>
-        <div className="header-center">{currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
-        <div className="header-right">THE PROCESS</div>
-      </header>
-
-      <div className="grid-main">
-        <section className="card bloco-atual-container">
-          <h2>BLOCO ATUAL</h2>
-          <h1 className="timer-title">{status.blocoAtual}</h1>
-          <div className="big-timer">{status.tempoRestante}</div>
-          <div className="barra-progresso"><div className="fill" style={{ width: `${status.porcentagem}%` }}></div></div>
-          <p className="mensagem">{status.mensagem}</p>
-          <div className="btn-group">
-            <button className="btn btn-iniciar" onClick={handleIniciar}>INICIAR</button>
-            <button className="btn btn-pausar" onClick={() => setIsPaused(true)}>PAUSAR</button>
-            <button className="btn btn-reiniciar" onClick={handleReiniciar}>REINICIAR</button>
-          </div>
-        </section>
-
-        <section className="card performance-section">
-          <h2>DESEMPENHO DO TIME COMERCIAL</h2>
-          <div className="perf-layout">
-            <div className="gauge-side"><GaugeChart percentual={percentualMeta} /><p>{percentualMeta >= 100 ? "META BATIDA!" : "META EQUIPE"}</p></div>
-            <div className="chart-side"><DesvioChart dados={dadosGrafico} /></div>
-          </div>
-        </section>
-      </div>
-
-      <div className="bottom-row">
-        <div className="card"><h3>🏆 TOP 3 FATURAMENTO</h3><div className="bar-chart-container">{topFaturamento.map((item, index) => (<div key={index} className="bar-row"><span className="ranking-nome">{item.nome}</span><div className="bar-bg"><div className="bar-fill" style={{width: `${item.valor}%`}}></div></div><span>{item.valor}%</span></div>))}</div></div>
-        <div className="card"><h3>📞 TOP MÉDIA DE LIGAÇÕES</h3><div className="bar-chart-container">{topLigacoes.map((item, index) => (<div key={index} className="bar-row"><span className="ranking-nome">{item.nome}</span><div className="bar-bg"><div className="bar-fill" style={{width: `${item.valor}%`}}></div></div><span>{item.total}</span></div>))}</div></div>
-        <div className="card card-destaque"><h3>⭐ DESTAQUE DA SEMANA</h3><div className="trophy-icon">🏆</div><h2 style={{margin: '10px 0'}}>{nomeDestaque}</h2></div>
-      </div>
-    </div>
-  );
+/* --- Container raiz: ocupa a tela inteira --- */
+.dashboard-container {
+  width: 100vw;
+  height: 100vh;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: 16px;
+  padding: 16px;
+  overflow: hidden;
+  background: #0f1a2d;
+  color: #ffffff;
+  text-align: left;
 }
-export default App;
+
+/* --- Linhas principais --- */
+.grid-main {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  min-height: 0;
+}
+.bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 0.8fr;
+  gap: 16px;
+  min-height: 0;
+}
+
+/* --- Card base --- */
+.card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  background: #182451;
+  border: 1px solid #243160;
+  border-radius: 14px;
+  padding: 20px 24px;
+}
+
+/* Títulos dos cards — bem maiores para leitura à distância */
+.card h2 {
+  margin: 0 0 6px;
+  text-align: center;
+  font-size: 2rem;
+  letter-spacing: 0.5px;
+}
+.card h3 {
+  margin: 0;
+  text-align: center;
+  font-size: 1.9rem;
+  letter-spacing: 0.5px;
+}
+
+/* --- Cabeçalho --- */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 28px;
+  background: #141c24;
+  border: 1px solid #243160;
+  border-radius: 14px;
+  color: #ffffff;
+}
+.header-left,
+.header-center,
+.header-right {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+.header-left { justify-content: flex-start; }
+.header-center {
+  justify-content: center;
+  font-family: 'Courier New', monospace;
+  font-size: 2.4rem;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+.header-right {
+  justify-content: flex-end;
+  font-weight: bold;
+  font-size: 1.7rem;
+  color: #39ff14;
+  letter-spacing: 1.5px;
+}
+.logo-img {
+  width: 220px;
+  height: auto;
+  object-fit: contain;
+}
+
+/* --- Bloco atual (timer) --- */
+.bloco-atual-container {
+  align-items: center;
+  justify-content: space-evenly;
+  gap: 8px;
+  padding: 6px 0;
+}
+.timer-title {
+  font-size: 2rem;
+  margin: 0;
+  text-transform: uppercase;
+  text-align: center;
+  line-height: 1.15;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+}
+.big-timer {
+  font-size: clamp(3rem, 8.5vh, 5.5rem);
+  font-weight: bold;
+  margin: 0;
+  text-align: center;
+  line-height: 1;
+}
+.barra-progresso {
+  width: 75%;
+  height: 14px;
+  margin: 0 auto;
+  background: #2d3748;
+  border-radius: 20px;
+  overflow: hidden;
+}
+.fill {
+  height: 100%;
+  background: #39ff14;
+  transition: width 1s linear;
+}
+.mensagem {
+  font-size: 1.2rem;
+  color: #a0a0a0;
+  font-style: italic;
+  text-align: center;
+}
+
+/* --- Botões: 1 primário (verde) + 2 neutros (contorno) --- */
+.btn-group {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.btn {
+  cursor: pointer;
+  padding: 14px 32px;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 1.25rem;
+  letter-spacing: 0.5px;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.btn-iniciar {
+  background-color: #22c55e;
+  color: #06210f;
+}
+.btn-iniciar:hover { background-color: #16a34a; }
+.btn-pausar,
+.btn-reiniciar {
+  background-color: transparent;
+  color: #cbd5e1;
+  border: 1px solid #334155;
+}
+.btn-pausar:hover,
+.btn-reiniciar:hover {
+  background-color: #1e293b;
+  color: #ffffff;
+}
+
+/* --- Performance (gauge + gráfico) --- */
+.performance-section { min-height: 0; }
+.perf-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  align-items: center;
+  gap: 14px;
+  min-height: 0;
+  flex: 1;
+}
+.gauge-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.gauge-side p {
+  font-size: 1.4rem;
+  font-weight: bold;
+  margin-top: 8px;
+}
+.chart-side { min-width: 0; }
+
+/* --- Rankings --- */
+.bar-chart-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 18px;
+  justify-content: center;
+  flex: 1;
+}
+.bar-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 1.7rem;
+  font-weight: 500;
+}
+/* coluna de nomes (substitui o width:100px inline) */
+.ranking-nome {
+  width: 170px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bar-row > span:last-child {
+  min-width: 70px;
+  text-align: right;
+  font-weight: bold;
+}
+.bar-bg {
+  flex-grow: 1;
+  height: 20px;
+  background: #1e293b;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  background: #ffc107;
+  border-radius: 10px;
+  transition: width 1s ease-in-out;
+}
+
+/* --- Destaque da semana --- */
+.card-destaque {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 4px;
+}
+.trophy-icon {
+  font-size: 4rem;
+  margin-bottom: 6px;
+}
+.card-destaque h2 {
+  font-size: 2.8rem;
+  margin: 8px 0 0;
+}
