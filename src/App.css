@@ -1,40 +1,38 @@
 /* ============================================================
    GODI · THE PROCESS — dashboard
-   Layout de tela cheia + paleta contida
+   Layout de tela cheia + paleta contida + tipografia para TV
    ============================================================ */
 
 /* --- Container raiz: ocupa a tela inteira --- */
 .dashboard-container {
   width: 100vw;
-  height: 100vh;          /* preenche a tela toda — sem fundo morto */
+  height: 100vh;
   box-sizing: border-box;
   display: grid;
   grid-template-rows: auto minmax(0, 1.05fr) minmax(0, 0.95fr);
-  gap: 14px;
-  padding: 14px;
+  gap: 16px;
+  padding: 16px;
   overflow: hidden;
   background: #0f1a2d;
   color: #ffffff;
   text-align: left;
 }
 
-/* --- Linha de cima: Bloco atual + Performance --- */
+/* --- Linhas principais --- */
 .grid-main {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: 16px;
   min-height: 0;
 }
-
-/* --- Linha de baixo: rankings + destaque --- */
 .bottom-row {
   display: grid;
   grid-template-columns: 1fr 1fr 0.8fr;
-  gap: 14px;
+  gap: 16px;
   min-height: 0;
 }
 
-/* --- Card base (padrão único para todos) --- */
+/* --- Card base --- */
 .card {
   display: flex;
   flex-direction: column;
@@ -43,13 +41,21 @@
   background: #182451;
   border: 1px solid #243160;
   border-radius: 14px;
-  padding: 18px 20px;
+  padding: 20px 24px;
 }
 
-.card h2,
-.card h3 {
-  margin: 0 0 4px;
+/* Títulos dos cards — bem maiores para leitura à distância */
+.card h2 {
+  margin: 0 0 6px;
   text-align: center;
+  font-size: 2rem;
+  letter-spacing: 0.5px;
+}
+.card h3 {
+  margin: 0;
+  text-align: center;
+  font-size: 1.9rem;
+  letter-spacing: 0.5px;
 }
 
 /* --- Cabeçalho --- */
@@ -57,13 +63,12 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 24px;
+  padding: 12px 28px;
   background: #141c24;
   border: 1px solid #243160;
   border-radius: 14px;
   color: #ffffff;
 }
-
 .header-left,
 .header-center,
 .header-right {
@@ -75,18 +80,19 @@
 .header-center {
   justify-content: center;
   font-family: 'Courier New', monospace;
-  font-size: 1.8rem;
+  font-size: 2.4rem;
   font-weight: bold;
+  letter-spacing: 2px;
 }
 .header-right {
   justify-content: flex-end;
   font-weight: bold;
-  font-size: 1.3rem;
+  font-size: 1.7rem;
   color: #39ff14;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
 }
 .logo-img {
-  width: 190px;
+  width: 220px;
   height: auto;
   object-fit: contain;
 }
@@ -95,32 +101,30 @@
 .bloco-atual-container {
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 16px;
 }
-
 .timer-title {
-  font-size: 1.6rem;
+  font-size: 2.4rem;
   margin: 0;
   text-transform: uppercase;
   text-align: center;
   line-height: 1.2;
-  min-height: 2.4em;
+  min-height: 2.2em;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0 10px;
 }
-
 .big-timer {
-  font-size: clamp(3rem, 7vw, 5rem);
+  font-size: clamp(4rem, 9vw, 7rem);
   font-weight: bold;
   margin: 0;
   text-align: center;
+  line-height: 1;
 }
-
 .barra-progresso {
   width: 75%;
-  height: 12px;
+  height: 14px;
   margin: 0 auto;
   background: #2d3748;
   border-radius: 20px;
@@ -131,9 +135,8 @@
   background: #39ff14;
   transition: width 1s linear;
 }
-
 .mensagem {
-  font-size: 0.95rem;
+  font-size: 1.2rem;
   color: #a0a0a0;
   font-style: italic;
   text-align: center;
@@ -142,30 +145,26 @@
 /* --- Botões: 1 primário (verde) + 2 neutros (contorno) --- */
 .btn-group {
   display: flex;
-  gap: 12px;
+  gap: 14px;
   justify-content: center;
   flex-wrap: wrap;
-  margin-top: 6px;
+  margin-top: 8px;
 }
-
 .btn {
   cursor: pointer;
-  padding: 12px 26px;
+  padding: 14px 32px;
   border: none;
   border-radius: 8px;
   font-weight: bold;
-  font-size: 1.05rem;
+  font-size: 1.25rem;
+  letter-spacing: 0.5px;
   transition: background 0.2s, color 0.2s, border-color 0.2s;
 }
-
-/* Ação principal — verde da marca */
 .btn-iniciar {
   background-color: #22c55e;
   color: #06210f;
 }
 .btn-iniciar:hover { background-color: #16a34a; }
-
-/* Ações secundárias — neutras, sem competir por atenção */
 .btn-pausar,
 .btn-reiniciar {
   background-color: transparent;
@@ -182,9 +181,9 @@
 .performance-section { min-height: 0; }
 .perf-layout {
   display: grid;
-  grid-template-columns: 200px 1fr;
+  grid-template-columns: 220px 1fr;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   min-height: 0;
   flex: 1;
 }
@@ -195,34 +194,53 @@
   justify-content: center;
   text-align: center;
 }
+.gauge-side p {
+  font-size: 1.4rem;
+  font-weight: bold;
+  margin-top: 8px;
+}
 .chart-side { min-width: 0; }
 
-/* --- Rankings (barras douradas = clima de pódio) --- */
+/* --- Rankings --- */
 .bar-chart-container {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  margin-top: 14px;
+  gap: 20px;
+  margin-top: 18px;
   justify-content: center;
   flex: 1;
 }
 .bar-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 1rem;
+  gap: 16px;
+  font-size: 1.7rem;
+  font-weight: 500;
+}
+/* coluna de nomes (substitui o width:100px inline) */
+.ranking-nome {
+  width: 170px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bar-row > span:last-child {
+  min-width: 70px;
+  text-align: right;
+  font-weight: bold;
 }
 .bar-bg {
   flex-grow: 1;
-  height: 14px;
+  height: 20px;
   background: #1e293b;
-  border-radius: 7px;
+  border-radius: 10px;
   overflow: hidden;
 }
 .bar-fill {
   height: 100%;
   background: #ffc107;
-  border-radius: 7px;
+  border-radius: 10px;
   transition: width 1s ease-in-out;
 }
 
@@ -231,8 +249,13 @@
   align-items: center;
   justify-content: center;
   text-align: center;
+  gap: 4px;
 }
 .trophy-icon {
-  font-size: 3rem;
-  margin-bottom: 8px;
+  font-size: 4rem;
+  margin-bottom: 6px;
+}
+.card-destaque h2 {
+  font-size: 2.8rem;
+  margin: 8px 0 0;
 }
