@@ -31,6 +31,7 @@
         .btn-container { display: flex; gap: 15px; margin-top: 20px; }
         .btn-salvar { background: transparent; border: 1px solid var(--accent-green); color: var(--accent-green); padding: 12px; border-radius: 6px; cursor: pointer; flex: 1; }
         .btn-enviar { background: var(--accent-green); color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; flex: 2; font-weight: bold; }
+        .btn-enviar:disabled { opacity: 0.6; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -110,34 +111,35 @@
 </div>
 
 <script>
+    // ============================================================
+    // 1) COLE AQUI A URL /exec DA SUA IMPLANTAÇÃO DO APPS SCRIPT
+    //    (Apps Script -> Implantar -> Gerenciar implantações)
+    // ============================================================
+    const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbxIIv-mpmsMxOkKU8-lanwhjtXanFkAQkYVpB6efqTKkaykO748tjwM4w9SSWZF3Fzv/exec";
+
     // --- ESCALA DO DIA ---
-    // Adicione as datas aqui conforme a necessidade
     const agendaDoDia = {
         "2026-06-03": { cafe: "PEDRO", limpeza: "MARCOS" },
         "2026-06-04": { cafe: "PRADO", limpeza: "NATHA" }
     };
 
     const listaLimpeza = ["Trindade", "Jonadaby", "Marcos", "Natha", "Pedro", "Prado", "Rafael A", "Rafael M", "Ramon", "Felipe Luiz", "Vinicius", "Jadiel"];
-const listaCafe = ["Trindade", "PEDRO", "PRADO", "RAFAEL A", "RAMON", "RODRIGO", "Felipe Luiz"];
+    const listaCafe = ["Trindade", "PEDRO", "PRADO", "RAFAEL A", "RAMON", "RODRIGO", "Felipe Luiz"];
 
-function carregarEscalaDoDia() {
-    // Calcula o dia do ano para determinar o índice
-    const now = new Date();
-    const start = new Date(now.getFullYear(), 0, 0);
-    const diff = (now - start) + ((start.getTimezoneOffset() - now.getTimezoneOffset()) * 60 * 1000);
-    const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
+    function carregarEscalaDoDia() {
+        const now = new Date();
+        const start = new Date(now.getFullYear(), 0, 0);
+        const diff = (now - start) + ((start.getTimezoneOffset() - now.getTimezoneOffset()) * 60 * 1000);
+        const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
 
-    // Define os nomes baseados no dia
-    const nomeLimpeza = listaLimpeza[dayOfYear % listaLimpeza.length];
-    const nomeCafe = listaCafe[dayOfYear % listaCafe.length];
+        const nomeLimpeza = listaLimpeza[dayOfYear % listaLimpeza.length];
+        const nomeCafe = listaCafe[dayOfYear % listaCafe.length];
 
-    // Preenche os campos
-    document.getElementById('cafeDia').value = nomeCafe;
-    document.getElementById('limpezaDia').value = nomeLimpeza;
-}
+        document.getElementById('cafeDia').value = nomeCafe;
+        document.getElementById('limpezaDia').value = nomeLimpeza;
+    }
 
-// Executa ao carregar a página
-window.onload = carregarEscalaDoDia;
+    window.onload = carregarEscalaDoDia;
 
     // --- CÁLCULO DE HORAS ---
     const inputsBlocos = document.querySelectorAll('.bloco-input');
@@ -150,7 +152,7 @@ window.onload = carregarEscalaDoDia;
         });
     });
 
-    // --- RASCUNHOS E ENVIO ---
+    // --- RASCUNHOS ---
     function salvarRascunho() {
         const dados = Object.fromEntries(new FormData(document.getElementById('formGodi')).entries());
         if (!dados.comercial) return alert('Selecione o Comercial!');
@@ -170,12 +172,47 @@ window.onload = carregarEscalaDoDia;
         }
     }
 
+    // --- ENVIO PARA O GOOGLE SHEETS ---
     document.getElementById('formGodi').addEventListener('submit', async (e) => {
         e.preventDefault();
-        // Lógica de envio omitida para brevidade, mantenha a sua original aqui
-        alert('Dados enviados!');
-        e.target.reset();
-        displayTotal.textContent = "0";
+
+        const botao = e.target.querySelector('.btn-enviar');
+        const dados = Object.fromEntries(new FormData(e.target).entries());
+
+        if (!dados.comercial) return alert('Selecione o Comercial!');
+
+        if (URL_APPS_SCRIPT === "https://script.google.com/macros/s/AKfycbxIIv-mpmsMxOkKU8-lanwhjtXanFkAQkYVpB6efqTKkaykO748tjwM4w9SSWZF3Fzv/exec") {
+            alert('Falta configurar a URL do Apps Script no código (URL_APPS_SCRIPT).');
+            return;
+        }
+
+        botao.disabled = true;
+        botao.textContent = "ENVIANDO...";
+
+        try {
+            const resposta = await fetch(URL_APPS_SCRIPT, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: JSON.stringify(dados)
+            });
+
+            const resultado = await resposta.json();
+
+            if (resultado.success) {
+                alert('Dados enviados com sucesso!');
+                localStorage.removeItem('rascunho_' + dados.comercial);
+                e.target.reset();
+                displayTotal.textContent = "0";
+                carregarEscalaDoDia();
+            } else {
+                alert('Erro ao salvar: ' + (resultado.error || 'erro desconhecido'));
+            }
+        } catch (erro) {
+            alert('Falha no envio: ' + erro.message);
+        } finally {
+            botao.disabled = false;
+            botao.textContent = "ENVIAR RESULTADO";
+        }
     });
 </script>
 </body>
