@@ -112,10 +112,13 @@
 
 <script>
     // ============================================================
-    // 1) COLE AQUI A URL /exec DA SUA IMPLANTAÇÃO DO APPS SCRIPT
+    // 1) URL /exec DA SUA IMPLANTAÇÃO DO APPS SCRIPT
     //    (Apps Script -> Implantar -> Gerenciar implantações)
     // ============================================================
     const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbxIIv-mpmsMxOkKU8-lanwhjtXanFkAQkYVpB6efqTKkaykO748tjwM4w9SSWZF3Fzv/exec";
+
+    // Marcador usado so pela trava de seguranca (NAO trocar)
+    const URL_NAO_CONFIGURADA = "COLE_AQUI_SUA_URL_EXEC";
 
     // --- ESCALA DO DIA ---
     const agendaDoDia = {
@@ -141,7 +144,7 @@
 
     window.onload = carregarEscalaDoDia;
 
-    // --- CÁLCULO DE HORAS ---
+    // --- CALCULO DE HORAS ---
     const inputsBlocos = document.querySelectorAll('.bloco-input');
     const displayTotal = document.getElementById('totalHoras');
     inputsBlocos.forEach(input => {
@@ -181,8 +184,8 @@
 
         if (!dados.comercial) return alert('Selecione o Comercial!');
 
-        if (URL_APPS_SCRIPT === "https://script.google.com/macros/s/AKfycbxIIv-mpmsMxOkKU8-lanwhjtXanFkAQkYVpB6efqTKkaykO748tjwM4w9SSWZF3Fzv/exec") {
-            alert('Falta configurar a URL do Apps Script no código (URL_APPS_SCRIPT).');
+        if (URL_APPS_SCRIPT === URL_NAO_CONFIGURADA) {
+            alert('Falta configurar a URL do Apps Script no codigo (URL_APPS_SCRIPT).');
             return;
         }
 
