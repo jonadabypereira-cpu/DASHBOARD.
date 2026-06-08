@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import axios from 'axios';
 import GaugeChart from './GaugeChart';
 import RankingCard from './RankingCard';
@@ -58,8 +58,11 @@ function App() {
   const [manualEndTime, setManualEndTime] = useState(null);
   const [status, setStatus] = useState({ blocoAtual: "Aguardando...", tempoRestante: "00:00", porcentagem: 0, mensagem: "Clique em INICIAR" });
 
-  const startSound = useRef(new Audio('/start.mp3'));
-  const endSound = useRef(new Audio('/end.mp3'));
+  // Áudio inicializado de forma preguiçosa (não recria a cada render)
+  const startSound = useRef(null);
+  const endSound = useRef(null);
+  if (!startSound.current) startSound.current = new Audio('/start.mp3');
+  if (!endSound.current) endSound.current = new Audio('/end.mp3');
   const hasPlayedEndSound = useRef(false);
 
   const blocos = [
@@ -71,6 +74,12 @@ function App() {
   ];
 
   const percentualMeta = metaMensal > 0 ? Math.min(100, Math.round((totalFaturamento / metaMensal) * 100)) : 0;
+
+  // Só recalcula o gráfico quando os dados ou a meta mudam — não a cada segundo do relógio
+  const dadosGrafico = useMemo(
+    () => processarDadosParaGrafico(dados, metaMensal),
+    [dados, metaMensal]
+  );
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -238,7 +247,7 @@ function App() {
           <h2>DESEMPENHO DO TIME COMERCIAL</h2>
           <div className="perf-layout">
             <div className="gauge-side"><GaugeChart percentual={percentualMeta} /><p>{percentualMeta >= 100 ? "META BATIDA!" : `${percentualMeta}% DA META`}</p></div>
-            <div className="chart-side"><DesvioChart dados={processarDadosParaGrafico(dados, metaMensal)} /></div>
+            <div className="chart-side"><DesvioChart dados={dadosGrafico} /></div>
           </div>
         </section>
       </div>
