@@ -194,7 +194,7 @@ function App() {
       const minutos = Math.floor((diff / 1000 / 60) % 60);
       const segundos = Math.floor((diff / 1000) % 60);
       const progresso = 100 - ((diff / (60 * 60 * 1000)) * 100);
-      setStatus({ blocoAtual: nomeBloco, tempoRestante: `${String(minutos).padStart(2, '0')}:${String(segundos).padStart(2, '0')}`, porcentagem: Math.min(100, Math.max(0, progresso)), mensagem: manualEndTime ? "Sessão iniciada manualmente" : `Bloco ativo: ${nomeBloco}` });
+      setStatus({ blocoAtual: nomeBloco, tempoRestante: `${String(minutos).padStart(2, '0')}:${String(segundos).padStart(2, '0')}`, porcentagem: Math.min(100, Math.max(0, progresso)), mensagem: "" });
     } else {
       setStatus({ blocoAtual: "INTERVALO", tempoRestante: "00:00", porcentagem: 100, mensagem: "Se prepare para o próximo bloco!" });
     }
@@ -246,7 +246,7 @@ function App() {
         <section className="card performance-section">
           <h2>DESEMPENHO DO TIME COMERCIAL</h2>
           <div className="perf-layout">
-            <div className="gauge-side"><GaugeChart percentual={percentualMeta} /><p>{percentualMeta >= 100 ? "META BATIDA!" : `${percentualMeta}% DA META`}</p></div>
+            <div className="gauge-side"><GaugeChart percentual={percentualMeta} /><p>{percentualMeta >= 100 ? "META BATIDA!" : "META EQUIPE"}</p></div>
             <div className="chart-side"><DesvioChart dados={dadosGrafico} /></div>
           </div>
         </section>
@@ -254,7 +254,7 @@ function App() {
 
       <div className="bottom-row">
         <div className="card"><h3>🏆 TOP 3 FATURAMENTO</h3><div className="bar-chart-container">{topFaturamento.map((item, index) => (<div key={index} className="bar-row"><span className="ranking-nome">{item.nome}</span><div className="bar-bg"><div className="bar-fill" style={{width: `${item.valor}%`}}></div></div><span>{item.valor}%</span></div>))}</div></div>
-        <div className="card"><h3>📊 MÉDIA DE LIGAÇÕES</h3><div className="bar-chart-container">{topLigacoes.map((item, index) => (<div key={index} className="bar-row"><span className="ranking-nome">{item.nome}</span><div className="bar-bg"><div className="bar-fill" style={{width: `${item.valor}%`}}></div></div><span>{item.total}</span></div>))}</div></div>
+        <div className="card"><h3>📞 TOP MÉDIA DE LIGAÇÕES</h3><div className="bar-chart-container">{topLigacoes.map((item, index) => (<div key={index} className="bar-row"><span className="ranking-nome">{item.nome}</span><div className="bar-bg"><div className="bar-fill" style={{width: `${item.valor}%`}}></div></div><span>{item.total}</span></div>))}</div></div>
         <div className="card card-destaque"><h3>⭐ DESTAQUE DA SEMANA</h3><div className="trophy-icon">🏆</div><h2 style={{margin: '10px 0'}}>{nomeDestaque}</h2></div>
       </div>
     </div>
