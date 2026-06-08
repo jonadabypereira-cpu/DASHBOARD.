@@ -92,30 +92,54 @@ function App() {
   };
 
   useEffect(() => {
-    carregarDados();
-    const interval = setInterval(carregarDados, 30000);
-    return () => clearInterval(interval);
-  }, []);
+  if (!dados || dados.length <= 1) return;
+  const acumulado = {};
+  let destaqueEncontrado = "Nenhum";
 
-  useEffect(() => {
-    if (!dados || dados.length <= 1) return;
-    const acumulado = {};
-    let destaqueEncontrado = "Nenhum";
+  const num = (v) => Number(v) || 0;
 
-    dados.slice(1).forEach((row) => {
-      const nome = row[1];
-      const fat = parseBrazilianCurrency(row[4]);
-      const lig = parseInt(row[row.length - 1]) || 0;
-      const dest = row[13];
-      if (nome) {
-        if (!acumulado[nome]) acumulado[nome] = { fat: 0, lig: 0 };
-        acumulado[nome].fat += fat;
-        acumulado[nome].lig += lig;
-      }
-      if (dest && dest.toString().trim() !== "" && dest !== "0" && isNaN(dest)) {
-        destaqueEncontrado = dest;
+  dados.slice(1).forEach((row) => {
+    const nome = row[1];
+    const fat = parseBrazilianCurrency(row[4]);
+    // soma dos blocos b1..b5 (colunas F a J = índices 5 a 9)
+    const blocosDia = num(row[5]) + num(row[6]) + num(row[7]) + num(row[8]) + num(row[9]);
+    const dest = row[13];
+
+    if (nome) {
+      if (!acumulado[nome]) acumulado[nome] = { fat: 0, blocos: 0, dias: 0 };
+      acumulado[nome].fat += fat;
+      acumulado[nome].blocos += blocosDia;
+      acumulado[nome].dias += 1; // cada linha conta como um dia lançado
     }
-    });
+    if (dest && dest.toString().trim() !== "" && dest !== "0" && isNaN(dest)) {
+      destaqueEncontrado = dest;
+    }
+  });
+
+  const lista = Object.keys(acumulado).map((nome) => ({
+    nome,
+    fat: acumulado[nome].fat,
+    media: acumulado[nome].dias > 0 ? acumulado[nome].blocos / acumulado[nome].dias : 0,
+  }));
+  if (lista.length === 0) return;
+
+  const rankingFat = [...lista].sort((a, b) => b.fat - a.fat);
+  const maxFat = rankingFat[0].fat || 1;
+  setTopFaturamento(rankingFat.slice(0, 3).map(i => ({
+    nome: i.nome,
+    valor: i.fat > 0 ? Math.round((i.fat / maxFat) * 100) : 0,
+  })));
+
+  const rankingMedia = [...lista].sort((a, b) => b.media - a.media);
+  const maxMedia = rankingMedia[0].media || 1;
+  setTopLigacoes(rankingMedia.slice(0, 3).map(i => ({
+    nome: i.nome,
+    valor: i.media > 0 ? Math.round((i.media / maxMedia) * 100) : 0,
+    total: i.media.toFixed(1), // mostra a média com 1 casa
+  })));
+
+  setNomeDestaque(destaqueEncontrado);
+}, [dados]);
 
     const lista = Object.keys(acumulado).map((nome) => ({ nome, fat: acumulado[nome].fat, lig: acumulado[nome].lig }));
     if (lista.length === 0) return;
