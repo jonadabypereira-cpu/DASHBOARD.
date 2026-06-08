@@ -253,8 +253,8 @@ function App() {
       </div>
 
       <div className="bottom-row">
-        <div className="card"><h3>🏆 TOP 3 FATURAMENTO</h3><div className="bar-chart-container">{topFaturamento.map((item, index) => (<div key={index} className="bar-row"><span style={{width: '100px'}}>{item.nome}</span><div className="bar-bg"><div className="bar-fill" style={{width: `${item.valor}%`}}></div></div><span>{item.valor}%</span></div>))}</div></div>
-        <div className="card"><h3>📊 MÉDIA DE BLOCOS / DIA</h3><div className="bar-chart-container">{topLigacoes.map((item, index) => (<div key={index} className="bar-row"><span style={{width: '100px'}}>{item.nome}</span><div className="bar-bg"><div className="bar-fill" style={{width: `${item.valor}%`}}></div></div><span>{item.total}</span></div>))}</div></div>
+        <div className="card"><h3>🏆 TOP 3 FATURAMENTO</h3><div className="bar-chart-container">{topFaturamento.map((item, index) => (<div key={index} className="bar-row"><span className="ranking-nome">{item.nome}</span><div className="bar-bg"><div className="bar-fill" style={{width: `${item.valor}%`}}></div></div><span>{item.valor}%</span></div>))}</div></div>
+        <div className="card"><h3>📊 MÉDIA DE BLOCOS / DIA</h3><div className="bar-chart-container">{topLigacoes.map((item, index) => (<div key={index} className="bar-row"><span className="ranking-nome">{item.nome}</span><div className="bar-bg"><div className="bar-fill" style={{width: `${item.valor}%`}}></div></div><span>{item.total}</span></div>))}</div></div>
         <div className="card card-destaque"><h3>⭐ DESTAQUE DA SEMANA</h3><div className="trophy-icon">🏆</div><h2 style={{margin: '10px 0'}}>{nomeDestaque}</h2></div>
       </div>
     </div>
