@@ -6,7 +6,7 @@ import './App.css';
 import DesvioChart from './DesvioChart';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://script.google.com/macros/s/AKfycbxTjGxybDbkXqU9RF9sJKw2N5X051JZjByCvYsxqFsTDeUiC5QrpyzOwwD0281dCIYA/exec';
-console.log("URL de Conexão do Axios:", API_URL); // ADICIONE ESTA LINHA
+console.log("URL de Conexão do Axios:", API_URL);
 
 const parseBrazilianCurrency = (valor) => {
   if (!valor) return 0;
@@ -78,10 +78,9 @@ function App() {
   }, []);
 
   const carregarDados = async () => {
-  try {
-    // O Google entende parâmetros após o '?'
-    const resposta = await axios.get(`${API_URL}?action=dados`);
-    
+    try {
+      // O Google entende parâmetros após o '?'
+      const resposta = await axios.get(`${API_URL}?action=dados`);
       if (Array.isArray(resposta.data) && resposta.data.length > 1) {
         setDados(resposta.data);
         const linhaDados = resposta.data[1];
@@ -91,66 +90,60 @@ function App() {
     } catch (error) { console.error("ERRO AO CARREGAR:", error); }
   };
 
+  // Carrega ao montar e recarrega a cada 30 segundos
   useEffect(() => {
-  if (!dados || dados.length <= 1) return;
-  const acumulado = {};
-  let destaqueEncontrado = "Nenhum";
+    carregarDados();
+    const interval = setInterval(carregarDados, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
-  const num = (v) => Number(v) || 0;
+  // Processa os dados: ranking de faturamento e média de blocos por comercial
+  useEffect(() => {
+    if (!dados || dados.length <= 1) return;
+    const acumulado = {};
+    let destaqueEncontrado = "Nenhum";
 
-  dados.slice(1).forEach((row) => {
-    const nome = row[1];
-    const fat = parseBrazilianCurrency(row[4]);
-    // soma dos blocos b1..b5 (colunas F a J = índices 5 a 9)
-    const blocosDia = num(row[5]) + num(row[6]) + num(row[7]) + num(row[8]) + num(row[9]);
-    const dest = row[13];
+    const num = (v) => Number(v) || 0;
 
-    if (nome) {
-      if (!acumulado[nome]) acumulado[nome] = { fat: 0, blocos: 0, dias: 0 };
-      acumulado[nome].fat += fat;
-      acumulado[nome].blocos += blocosDia;
-      acumulado[nome].dias += 1; // cada linha conta como um dia lançado
-    }
-    if (dest && dest.toString().trim() !== "" && dest !== "0" && isNaN(dest)) {
-      destaqueEncontrado = dest;
-    }
-  });
+    dados.slice(1).forEach((row) => {
+      const nome = row[1];
+      const fat = parseBrazilianCurrency(row[4]);
+      // soma dos blocos b1..b5 (colunas F a J = índices 5 a 9)
+      const blocosDia = num(row[5]) + num(row[6]) + num(row[7]) + num(row[8]) + num(row[9]);
+      const dest = row[13];
 
-  const lista = Object.keys(acumulado).map((nome) => ({
-    nome,
-    fat: acumulado[nome].fat,
-    media: acumulado[nome].dias > 0 ? acumulado[nome].blocos / acumulado[nome].dias : 0,
-  }));
-  if (lista.length === 0) return;
+      if (nome) {
+        if (!acumulado[nome]) acumulado[nome] = { fat: 0, blocos: 0, dias: 0 };
+        acumulado[nome].fat += fat;
+        acumulado[nome].blocos += blocosDia;
+        acumulado[nome].dias += 1; // cada linha conta como um dia lançado
+      }
+      if (dest && dest.toString().trim() !== "" && dest !== "0" && isNaN(dest)) {
+        destaqueEncontrado = dest;
+      }
+    });
 
-  const rankingFat = [...lista].sort((a, b) => b.fat - a.fat);
-  const maxFat = rankingFat[0].fat || 1;
-  setTopFaturamento(rankingFat.slice(0, 3).map(i => ({
-    nome: i.nome,
-    valor: i.fat > 0 ? Math.round((i.fat / maxFat) * 100) : 0,
-  })));
-
-  const rankingMedia = [...lista].sort((a, b) => b.media - a.media);
-  const maxMedia = rankingMedia[0].media || 1;
-  setTopLigacoes(rankingMedia.slice(0, 3).map(i => ({
-    nome: i.nome,
-    valor: i.media > 0 ? Math.round((i.media / maxMedia) * 100) : 0,
-    total: i.media.toFixed(1), // mostra a média com 1 casa
-  })));
-
-  setNomeDestaque(destaqueEncontrado);
-}, [dados]);
-
-    const lista = Object.keys(acumulado).map((nome) => ({ nome, fat: acumulado[nome].fat, lig: acumulado[nome].lig }));
+    const lista = Object.keys(acumulado).map((nome) => ({
+      nome,
+      fat: acumulado[nome].fat,
+      media: acumulado[nome].dias > 0 ? acumulado[nome].blocos / acumulado[nome].dias : 0,
+    }));
     if (lista.length === 0) return;
 
-    const rankingFat = lista.sort((a, b) => b.fat - a.fat);
+    const rankingFat = [...lista].sort((a, b) => b.fat - a.fat);
     const maxFat = rankingFat[0].fat || 1;
-    setTopFaturamento(rankingFat.slice(0, 3).map(i => ({ nome: i.nome, valor: i.fat > 0 ? Math.round((i.fat / maxFat) * 100) : 0 })));
+    setTopFaturamento(rankingFat.slice(0, 3).map(i => ({
+      nome: i.nome,
+      valor: i.fat > 0 ? Math.round((i.fat / maxFat) * 100) : 0,
+    })));
 
-    const rankingLig = lista.sort((a, b) => b.lig - a.lig);
-    const maxLig = rankingLig[0].lig || 1;
-    setTopLigacoes(rankingLig.slice(0, 3).map(i => ({ nome: i.nome, valor: i.lig > 0 ? Math.round((i.lig / maxLig) * 100) : 0, total: i.lig })));
+    const rankingMedia = [...lista].sort((a, b) => b.media - a.media);
+    const maxMedia = rankingMedia[0].media || 1;
+    setTopLigacoes(rankingMedia.slice(0, 3).map(i => ({
+      nome: i.nome,
+      valor: i.media > 0 ? Math.round((i.media / maxMedia) * 100) : 0,
+      total: i.media.toFixed(1), // mostra a média com 1 casa
+    })));
 
     setNomeDestaque(destaqueEncontrado);
   }, [dados]);
@@ -252,7 +245,7 @@ function App() {
 
       <div className="bottom-row">
         <div className="card"><h3>🏆 TOP 3 FATURAMENTO</h3><div className="bar-chart-container">{topFaturamento.map((item, index) => (<div key={index} className="bar-row"><span style={{width: '100px'}}>{item.nome}</span><div className="bar-bg"><div className="bar-fill" style={{width: `${item.valor}%`}}></div></div><span>{item.valor}%</span></div>))}</div></div>
-        <div className="card"><h3>📞 TOP 3 LIGAÇÕES</h3><div className="bar-chart-container">{topLigacoes.map((item, index) => (<div key={index} className="bar-row"><span style={{width: '100px'}}>{item.nome}</span><div className="bar-bg"><div className="bar-fill" style={{width: `${item.valor}%`}}></div></div><span>{item.total}</span></div>))}</div></div>
+        <div className="card"><h3>📊 MÉDIA DE BLOCOS / DIA</h3><div className="bar-chart-container">{topLigacoes.map((item, index) => (<div key={index} className="bar-row"><span style={{width: '100px'}}>{item.nome}</span><div className="bar-bg"><div className="bar-fill" style={{width: `${item.valor}%`}}></div></div><span>{item.total}</span></div>))}</div></div>
         <div className="card card-destaque"><h3>⭐ DESTAQUE DA SEMANA</h3><div className="trophy-icon">🏆</div><h2 style={{margin: '10px 0'}}>{nomeDestaque}</h2></div>
       </div>
     </div>
