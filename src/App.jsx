@@ -106,53 +106,93 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Processa os dados: ranking de faturamento e média de blocos por comercial
+  // Processa os dados: ranking de faturamento e média de ligações por comercial
   useEffect(() => {
     if (!dados || dados.length <= 1) return;
-    const acumulado = {};
+
+    const hoje = new Date();
+    const mesAtual = hoje.getMonth() + 1;
+    const anoAtual = hoje.getFullYear();
+    const num = (v) => Number(v) || 0;
+
+    // "dd/MM/yyyy" (ou com hora) -> { mes, ano, chave do dia normalizada }
+    const parseData = (raw) => {
+      if (!raw) return null;
+      const [d, m, a] = raw.toString().split('/');
+      const dia = parseInt(d, 10), mes = parseInt(m, 10), ano = parseInt(a, 10);
+      if (!dia || !mes || !ano) return null;
+      return { mes, ano, chave: `${dia}/${mes}/${ano}` };
+    };
+
+    const faturamentoMes = {};         // faturamento do mês por comercial (chave: nome em MAIÚSCULAS)
+    const efetivasPorComercial = {};   // soma das efetivas (b1..b5) no mês atual
+    const metaPorComercial = {};       // tabela Q (meta) x R (nome) -> meta individual
+    const diasEquipe = new Set();      // dias distintos em que a equipe lançou algo no mês
     let destaqueEncontrado = "Nenhum";
 
-    const num = (v) => Number(v) || 0;
+    const chaveNome = (n) => n.toString().trim().toUpperCase();
 
     dados.slice(1).forEach((row) => {
       const nome = row[1];
-      const fat = parseBrazilianCurrency(row[4]);
-      // soma dos blocos b1..b5 (colunas F a J = índices 5 a 9)
-      const blocosDia = num(row[5]) + num(row[6]) + num(row[7]) + num(row[8]) + num(row[9]);
-      const dest = row[13];
+      const dt = parseData(row[0]);
+      const noMes = dt && dt.mes === mesAtual && dt.ano === anoAtual;
 
-      if (nome) {
-        if (!acumulado[nome]) acumulado[nome] = { fat: 0, blocos: 0, dias: 0 };
-        acumulado[nome].fat += fat;
-        acumulado[nome].blocos += blocosDia;
-        acumulado[nome].dias += 1; // cada linha conta como um dia lançado
+      // Tabela de metas individuais (coluna Q = meta, coluna R = nome) — independe de data
+      const nomeMeta = row[17];
+      if (nomeMeta && nomeMeta.toString().trim() !== "") {
+        metaPorComercial[chaveNome(nomeMeta)] = parseBrazilianCurrency(row[16]);
       }
+
+      // Dia distinto da equipe (qualquer lançamento do mês conta)
+      if (noMes) diasEquipe.add(dt.chave);
+
+      if (nome && noMes) {
+        const k = chaveNome(nome);
+        // Faturamento do mês por comercial
+        if (!faturamentoMes[k]) faturamentoMes[k] = { nome, fat: 0 };
+        faturamentoMes[k].fat += parseBrazilianCurrency(row[4]);
+
+        // Efetivas do mês por comercial (soma dos blocos b1..b5 = índices 5 a 9)
+        if (!efetivasPorComercial[k]) efetivasPorComercial[k] = { nome, ef: 0 };
+        efetivasPorComercial[k].ef += num(row[5]) + num(row[6]) + num(row[7]) + num(row[8]) + num(row[9]);
+      }
+
+      const dest = row[13];
       if (dest && dest.toString().trim() !== "" && dest !== "0" && isNaN(dest)) {
         destaqueEncontrado = dest;
       }
     });
 
-    const lista = Object.keys(acumulado).map((nome) => ({
-      nome,
-      fat: acumulado[nome].fat,
-      media: acumulado[nome].dias > 0 ? acumulado[nome].blocos / acumulado[nome].dias : 0,
+    // --- TOP FATURAMENTO (% da meta individual de cada um) ---
+    const listaFat = Object.keys(faturamentoMes).map((k) => {
+      const meta = metaPorComercial[k] || 0;
+      const pct = meta > 0 ? (faturamentoMes[k].fat / meta) * 100 : 0;
+      return { nome: faturamentoMes[k].nome, pct: Math.round(pct) };
+    });
+    if (listaFat.length > 0) {
+      const rankingFat = listaFat.sort((a, b) => b.pct - a.pct);
+      setTopFaturamento(rankingFat.slice(0, 3).map(i => ({
+        nome: i.nome,
+        valor: Math.min(100, Math.max(0, i.pct)), // largura da barra (limitada a 100%)
+        total: `${i.pct}%`,                        // rótulo: % real (pode passar de 100%)
+      })));
+    }
+
+    // --- TOP MÉDIA DE LIGAÇÕES (divisor único = dias da equipe no mês) ---
+    const diasDaEquipe = diasEquipe.size || 1; // nunca divide por zero
+    const listaMedia = Object.keys(efetivasPorComercial).map((k) => ({
+      nome: efetivasPorComercial[k].nome,
+      media: efetivasPorComercial[k].ef / diasDaEquipe,
     }));
-    if (lista.length === 0) return;
-
-    const rankingFat = [...lista].sort((a, b) => b.fat - a.fat);
-    const maxFat = rankingFat[0].fat || 1;
-    setTopFaturamento(rankingFat.slice(0, 3).map(i => ({
-      nome: i.nome,
-      valor: i.fat > 0 ? Math.round((i.fat / maxFat) * 100) : 0,
-    })));
-
-    const rankingMedia = [...lista].sort((a, b) => b.media - a.media);
-    const maxMedia = rankingMedia[0].media || 1;
-    setTopLigacoes(rankingMedia.slice(0, 3).map(i => ({
-      nome: i.nome,
-      valor: i.media > 0 ? Math.round((i.media / maxMedia) * 100) : 0,
-      total: i.media.toFixed(1), // mostra a média com 1 casa
-    })));
+    if (listaMedia.length > 0) {
+      const rankingMedia = listaMedia.sort((a, b) => b.media - a.media);
+      const maxMedia = rankingMedia[0].media || 1;
+      setTopLigacoes(rankingMedia.slice(0, 3).map(i => ({
+        nome: i.nome,
+        valor: i.media > 0 ? Math.round((i.media / maxMedia) * 100) : 0,
+        total: i.media.toFixed(1), // média com 1 casa
+      })));
+    }
 
     setNomeDestaque(destaqueEncontrado);
   }, [dados]);
@@ -253,7 +293,7 @@ function App() {
       </div>
 
       <div className="bottom-row">
-        <div className="card"><h3>🏆 TOP 3 FATURAMENTO</h3><div className="bar-chart-container">{topFaturamento.map((item, index) => (<div key={index} className="bar-row"><span className="ranking-nome">{item.nome}</span><div className="bar-bg"><div className="bar-fill" style={{width: `${item.valor}%`}}></div></div><span>{item.valor}%</span></div>))}</div></div>
+        <div className="card"><h3>🏆 TOP 3 FATURAMENTO</h3><div className="bar-chart-container">{topFaturamento.map((item, index) => (<div key={index} className="bar-row"><span className="ranking-nome">{item.nome}</span><div className="bar-bg"><div className="bar-fill" style={{width: `${item.valor}%`}}></div></div><span>{item.total}</span></div>))}</div></div>
         <div className="card"><h3>📞 TOP MÉDIA DE LIGAÇÕES</h3><div className="bar-chart-container">{topLigacoes.map((item, index) => (<div key={index} className="bar-row"><span className="ranking-nome">{item.nome}</span><div className="bar-bg"><div className="bar-fill" style={{width: `${item.valor}%`}}></div></div><span>{item.total}</span></div>))}</div></div>
         <div className="card card-destaque"><h3>⭐ DESTAQUE DA SEMANA</h3><div className="trophy-icon">🏆</div><h2 style={{margin: '10px 0'}}>{nomeDestaque}</h2></div>
       </div>
