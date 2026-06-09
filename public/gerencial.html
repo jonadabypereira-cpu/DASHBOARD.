@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GODI · Painel Gerencial</title>
+
+  <!-- ===================================================================
+       PAINEL GERENCIAL — GODI / THE PROCESS
+       Este arquivo é independente. Ele lê os MESMOS dados da planilha
+       que o dashboard da equipe usa. Não mexe em nada do que já funciona.
+
+       >>> ÚNICA COISA QUE VOCÊ TALVEZ PRECISE TROCAR: a URL abaixo.
+           É a mesma URL que está no App.jsx (a que devolve os dados).
+       =================================================================== -->
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbxTjGxybDbkXqU9RF9sJKw2N5X051JZjByCvYsxqFsTDeUiC5QrpyzOwwD0281dCIYA/exec";
+  </script>
+
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>window.__chartFalhou = false;</script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" onerror="window.__chartFalhou = true;"></script>
+
+  <style>
+    :root{
+      --bg:        #e8f3fa;
+      --bg-2:      #d7e9f4;
+      --card:      #ffffff;
+      --ink:       #11202e;
+      --ink-soft:  #56707f;
+      --line:      #a9d6ea;          /* borda azul dos quadros */
+      --cyan:      #15c2d8;          /* ciano GODI (principal) */
+      --cyan-soft: #def6fa;
+      --green:     #6fc83a;          /* verde do logo / THE PROCESS */
+      --green-soft:#e9f7dc;
+      --blue:      #1e88c9;
+      --blue-soft: #e3f0fb;
+      --navy:      #0f1b2a;
+      --shadow:    0 1px 2px rgba(15,40,60,.05), 0 8px 24px rgba(20,80,110,.08);
+      --shadow-sm: 0 1px 2px rgba(15,40,60,.05), 0 3px 10px rgba(20,80,110,.07);
+    }
+    *{ box-sizing:border-box; margin:0; padding:0; }
+    html,body{ height:100%; }
+    body{
+      font-family:'Figtree',sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(900px 520px at 10% -5%, rgba(21,194,216,.12) 0%, rgba(21,194,216,0) 55%),
+        radial-gradient(1100px 560px at 90% 0%, rgba(111,200,58,.08) 0%, rgba(111,200,58,0) 55%),
+        radial-gradient(1200px 600px at 80% -10%, #ffffff 0%, rgba(255,255,255,0) 60%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+      background-attachment:fixed;
+      min-height:100vh;
+      padding:18px;
+      -webkit-font-smoothing:antialiased;
+    }
+    .wrap{ max-width:1560px; margin:0 auto; }
+
+    /* ---------- HEADER ---------- */
+    .topbar{
+      display:flex; align-items:center; gap:20px;
+      background:var(--card); border:1.5px solid var(--line);
+      border-radius:18px; padding:16px 22px; box-shadow:var(--shadow);
+      position:relative; overflow:hidden;
+    }
+    .topbar::before{
+      content:""; position:absolute; left:0; top:0; bottom:0; width:6px;
+      background:linear-gradient(180deg,var(--cyan),var(--green));
+    }
+    .brand{ display:flex; align-items:center; gap:14px; padding-left:6px; }
+    .logo-chip{
+      background:var(--navy); border-radius:13px; padding:9px 16px;
+      display:flex; align-items:center; box-shadow:0 4px 12px rgba(15,27,42,.18);
+    }
+    .brand img{ height:34px; width:auto; display:block; }
+    .brand .fallback{
+      font-family:'Archivo'; font-weight:900; font-size:24px; letter-spacing:-1px;
+      color:#ffffff;
+    }
+    .title-block{ flex:1; text-align:center; }
+    .title-block .t1{
+      font-family:'Archivo'; font-weight:900; font-size:30px; letter-spacing:1px;
+      color:var(--navy); line-height:1;
+    }
+    .title-block .t1 span{ color:var(--green); }
+    .title-block .t2{
+      font-family:'Archivo'; font-weight:600; font-size:13px; letter-spacing:5px;
+      color:var(--ink-soft); margin-top:4px; text-transform:uppercase;
+    }
+    .meta-box{
+      display:flex; flex-direction:column; gap:2px; text-align:right;
+      padding-left:20px; border-left:1px solid var(--line); min-width:150px;
+    }
+    .meta-box .lbl{ font-size:10px; letter-spacing:1.5px; color:var(--ink-soft); font-weight:700; }
+    .meta-box .val{ font-family:'Archivo'; font-weight:800; font-size:22px; color:var(--ink); }
+    .meta-box .sub{ font-size:11px; color:var(--ink-soft); }
+
+    /* ---------- BARRA DE CONTROLES ---------- */
+    .controles{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:18px 0 4px; }
+    .toggle{
+      display:inline-flex; background:var(--bg-2); border-radius:12px; padding:4px; gap:4px;
+    }
+    .toggle button{
+      font-family:'Figtree'; font-weight:700; font-size:13px; color:var(--ink-soft);
+      border:none; background:transparent; padding:9px 16px; border-radius:9px; cursor:pointer;
+      transition:.15s;
+    }
+    .toggle button.active{ background:var(--card); color:var(--navy); box-shadow:var(--shadow-sm); }
+    .seletor{ display:flex; align-items:center; gap:6px; }
+    .seletor select{
+      font-family:'Figtree'; font-weight:600; font-size:13px; color:var(--navy);
+      background:var(--card); border:1.5px solid var(--line); border-radius:10px;
+      padding:9px 12px; cursor:pointer; box-shadow:var(--shadow-sm);
+    }
+    /* mini toggle dentro dos painéis */
+    .panel-head{ display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+    .panel-head h2{ margin-bottom:0; }
+    .mini-toggle{ display:inline-flex; background:var(--bg-2); border-radius:9px; padding:3px; gap:3px; }
+    .mini-toggle button{
+      font-family:'Figtree'; font-weight:700; font-size:11px; color:var(--ink-soft);
+      border:none; background:transparent; padding:6px 12px; border-radius:7px; cursor:pointer; transition:.15s;
+    }
+    .mini-toggle button.active{ background:var(--cyan); color:#fff; }
+
+    /* ---------- KPI CARDS ---------- */
+    .kpis{
+      display:grid; grid-template-columns:repeat(6,1fr); gap:14px; margin:14px 0 18px;
+    }
+    .kpi{
+      background:var(--card); border:1.5px solid var(--line); border-radius:16px;
+      padding:18px; box-shadow:var(--shadow-sm); display:flex; flex-direction:column; gap:6px;
+      position:relative; overflow:hidden;
+    }
+    .kpi::after{
+      content:""; position:absolute; top:0; left:0; right:0; height:4px;
+      background:var(--acc, var(--cyan));
+    }
+    .kpis .kpi:nth-child(1){ --acc:#15c2d8; }
+    .kpis .kpi:nth-child(2){ --acc:#6fc83a; }
+    .kpis .kpi:nth-child(3){ --acc:#1e88c9; }
+    .kpis .kpi:nth-child(4){ --acc:#18b6c4; }
+    .kpis .kpi:nth-child(5){ --acc:#0d4f93; }
+    .kpis .kpi:nth-child(6){ --acc:#46b3e6; }
+    .kpi .icon{
+      width:40px; height:40px; border-radius:11px; display:grid; place-items:center;
+      background:var(--cyan-soft); color:var(--cyan); font-size:20px;
+    }
+    .kpi .klbl{ font-size:11px; letter-spacing:1px; color:var(--ink-soft); font-weight:700; text-transform:uppercase; }
+    .kpi .knum{ font-family:'Archivo'; font-weight:800; font-size:30px; color:var(--ink); line-height:1; }
+    .kpi .ksub{ font-size:10px; letter-spacing:1px; color:#9aa6b2; font-weight:600; }
+    .kpi.faturamento .icon{ background:var(--blue-soft); color:var(--blue); }
+    .kpi.faturamento .knum{ color:var(--blue); }
+
+    /* ---------- GRID DE PAINÉIS ---------- */
+    .grid{ display:grid; grid-template-columns:minmax(0,5fr) minmax(0,6fr); gap:18px; }
+    .panel{
+      background:var(--card); border:1.5px solid var(--line); border-radius:18px;
+      padding:20px; box-shadow:var(--shadow);
+    }
+    .panel h2{
+      font-family:'Archivo'; font-weight:800; font-size:15px; letter-spacing:1px;
+      color:var(--navy); text-transform:uppercase; margin-bottom:16px;
+      display:flex; align-items:center; gap:8px;
+    }
+    .panel h2::before{ content:""; width:10px; height:10px; border-radius:3px; background:var(--cyan); }
+
+    /* ---------- TABELA ---------- */
+    table{ width:100%; border-collapse:collapse; font-size:13px; }
+    thead th{
+      text-align:right; font-weight:700; font-size:10px; letter-spacing:.5px; color:var(--ink-soft);
+      text-transform:uppercase; padding:0 8px 10px; border-bottom:2px solid var(--line);
+    }
+    thead th:nth-child(1){ text-align:center; width:28px; }
+    thead th:nth-child(2){ text-align:left; }
+    tbody td{ padding:9px 8px; text-align:right; border-bottom:1px solid #f1f4f8; }
+    tbody td:nth-child(1){ text-align:center; color:var(--ink-soft); font-weight:700; }
+    tbody td:nth-child(2){ text-align:left; font-weight:600; color:var(--ink); }
+    tbody tr:hover{ background:#f8fafc; }
+    .rank-badge{
+      display:inline-grid; place-items:center; width:22px; height:22px; border-radius:7px;
+      background:var(--bg-2); font-family:'Archivo'; font-weight:800; font-size:11px; color:var(--ink-soft);
+    }
+    tbody tr:nth-child(1) .rank-badge{ background:#fff4d6; color:#c79100; }
+    tbody tr:nth-child(2) .rank-badge{ background:#eef1f4; color:#7a8794; }
+    tbody tr:nth-child(3) .rank-badge{ background:#fbe9dc; color:#bd6a32; }
+    .fat-cell{ color:var(--blue); font-weight:700; font-family:'Archivo'; }
+
+    /* destaque do 1º colocado */
+    tbody tr.linha-top{ background:linear-gradient(90deg, var(--cyan-soft) 0%, rgba(222,246,250,0) 70%); }
+    tbody tr.linha-top td:first-child{ box-shadow:inset 3px 0 0 var(--cyan); }
+    tbody tr.linha-top:hover{ background:linear-gradient(90deg, var(--cyan-soft) 0%, rgba(222,246,250,.2) 70%); }
+    /* linhas sem faturamento, levemente esmaecidas */
+    tbody tr.linha-zero td{ color:#9fadb8; }
+    tbody tr.linha-zero td:nth-child(2){ color:#8d9aa5; font-weight:500; }
+    tbody tr.linha-zero .fat-cell{ color:#c2ccd4; }
+
+    /* ---------- CHARTS ---------- */
+    .chart-row{ display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:18px; }
+    .chart-box{ position:relative; height:300px; }
+    .chart-box-tall{ position:relative; height:330px; }
+
+    /* ---------- ESTADOS ---------- */
+    #status{
+      text-align:center; padding:60px 20px; color:var(--ink-soft); font-size:15px; font-weight:600;
+    }
+    .spinner{
+      width:34px; height:34px; border:3px solid var(--line); border-top-color:var(--cyan);
+      border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 16px;
+    }
+    @keyframes spin{ to{ transform:rotate(360deg); } }
+    #content{ display:none; }
+
+    .footer{
+      text-align:center; color:var(--ink-soft); font-size:12px; font-weight:600;
+      padding:22px 0 8px; opacity:.8;
+    }
+
+    /* ---------- RESPONSIVO ---------- */
+    @media (max-width:1180px){
+      .kpis{ grid-template-columns:repeat(3,1fr); }
+      .grid{ grid-template-columns:1fr; }
+      .chart-row{ grid-template-columns:1fr; }
+      .title-block .t1{ font-size:22px; }
+    }
+    @media (max-width:640px){
+      .kpis{ grid-template-columns:repeat(2,1fr); }
+      .topbar{ flex-wrap:wrap; }
+      .meta-box{ border-left:none; padding-left:0; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo-chip">
+        <img src="/logo.png" alt="GODI" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+        <span class="fallback" style="display:none">GODI</span>
+      </div>
+    </div>
+    <div class="title-block">
+      <div class="t1">THE <span>PROCESS</span></div>
+      <div class="t2">Painel Gerencial</div>
+    </div>
+    <div class="meta-box">
+      <span class="lbl">DATA</span>
+      <span class="val" id="hdr-data">--/--/----</span>
+      <span class="sub" id="hdr-dia-semana">—</span>
+    </div>
+    <div class="meta-box">
+      <span class="lbl">ATUALIZADO ÀS</span>
+      <span class="val" id="hdr-hora">--:--:--</span>
+      <span class="sub">atualização automática</span>
+    </div>
+  </header>
+
+  <!-- CONTROLES: período + mês + ano -->
+  <div class="controles">
+    <div class="toggle" id="periodo-toggle">
+      <button id="btn-dia" class="active" onclick="setPeriodo('dia')">DIA</button>
+      <button id="btn-mes" onclick="setPeriodo('mes')">MÊS</button>
+      <button id="btn-tri" onclick="setPeriodo('trimestre')">TRIMESTRE</button>
+      <button id="btn-sem" onclick="setPeriodo('semestre')">SEMESTRE</button>
+      <button id="btn-ano" onclick="setPeriodo('ano')">ANO</button>
+    </div>
+    <div class="seletor">
+      <select id="sel-mes" onchange="setMes(this.value)"></select>
+      <select id="sel-ano" onchange="setAno(this.value)"></select>
+    </div>
+  </div>
+
+  <!-- ESTADO DE CARREGAMENTO / ERRO -->
+  <div id="status">
+    <div class="spinner"></div>
+    Carregando dados da planilha...
+  </div>
+
+  <!-- CONTEÚDO -->
+  <div id="content">
+
+    <!-- KPIs -->
+    <section class="kpis">
+      <div class="kpi"><div class="icon">📞</div><span class="klbl">Discagens</span><span class="knum" id="kpi-discagens">0</span><span class="ksub" id="ksub-1">TOTAL DO DIA</span></div>
+      <div class="kpi"><div class="icon">✅</div><span class="klbl">Ligações Efetivas</span><span class="knum" id="kpi-efetivas">0</span><span class="ksub" id="ksub-2">TOTAL DO DIA</span></div>
+      <div class="kpi"><div class="icon">📄</div><span class="klbl">Cotações</span><span class="knum" id="kpi-cotacoes">0</span><span class="ksub" id="ksub-3">TOTAL DO DIA</span></div>
+      <div class="kpi"><div class="icon">🤝</div><span class="klbl">Reuniões</span><span class="knum" id="kpi-reunioes">0</span><span class="ksub" id="ksub-4">TOTAL DO DIA</span></div>
+      <div class="kpi faturamento"><div class="icon">🎯</div><span class="klbl">Faturamento</span><span class="knum" id="kpi-faturamento">R$ 0</span><span class="ksub" id="ksub-5">TOTAL DO DIA</span></div>
+      <div class="kpi"><div class="icon">👤</div><span class="klbl">Clientes Novos</span><span class="knum" id="kpi-clientes">0</span><span class="ksub" id="ksub-6">TOTAL DO DIA</span></div>
+    </section>
+
+    <!-- LINHA 1: TABELA + BLOCOS -->
+    <div class="grid">
+      <section class="panel">
+        <h2 id="titulo-tabela">Desempenho Individual — Dia</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Comercial</th><th>Discag.</th><th>Efetivas</th>
+              <th>Cotaç.</th><th>Reuniões</th><th>Faturamento</th><th>Cli. Novos</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-body"></tbody>
+        </table>
+      </section>
+
+      <section class="panel">
+        <h2>Ligações Efetivas por Bloco</h2>
+        <div class="chart-box-tall" id="box-blocos"><canvas id="chartBlocos"></canvas></div>
+      </section>
+    </div>
+
+    <!-- LINHA 2: 2 GRÁFICOS HORIZONTAIS -->
+    <div class="chart-row">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Ligações Efetivas por Comercial</h2>
+          <div class="mini-toggle" id="toggle-efetivas">
+            <button class="active" onclick="setModoEfetivas('total')">Total</button>
+            <button onclick="setModoEfetivas('media')">Média/dia</button>
+          </div>
+        </div>
+        <div class="chart-box" id="box-efetivas"><canvas id="chartEfetivas"></canvas></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Faturamento por Comercial</h2>
+          <div class="mini-toggle" id="toggle-faturamento">
+            <button class="active" onclick="setModoFaturamento('total')">Total (semanas)</button>
+            <button onclick="setModoFaturamento('meta')">% Meta</button>
+          </div>
+        </div>
+        <div class="chart-box" id="box-faturamento"><canvas id="chartFaturamento"></canvas></div>
+      </section>
+    </div>
+
+  </div>
+
+  <div class="footer">Dados atualizados automaticamente a cada 5 minutos · GODI Transportes</div>
+</div>
+
+<script>
+/* ====================================================================
+   ÍNDICE DAS COLUNAS DA PLANILHA (a ordem importa!)
+   0 Data | 1 comercial | 2 cotacoes | 3 reunioes | 4 faturamento
+   5 bloco1 | 6 bloco2 | 7 bloco3 | 8 bloco4 | 9 bloco5
+   10 discagens | 11 clienteNovo | 12 ligacoesEf | 13 destaque
+   --- METAS INDIVIDUAIS (tabela de referência) ---
+   16 (Q) = valor da meta   |   17 (R) = nome do comercial
+   ==================================================================== */
+const COL = {
+  data:0, comercial:1, cotacoes:2, reunioes:3, faturamento:4,
+  blocos:[5,6,7,8,9], discagens:10, clienteNovo:11, efetivas:12
+};
+const COL_META_VALOR = 16; // coluna Q
+const COL_META_NOME  = 17; // coluna R
+const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+let dadosBrutos = [];          // todas as linhas da planilha (sem cabeçalho)
+let metasIndividuais = {};     // { NOME: valorMeta }
+let periodo = 'dia';           // dia | mes | trimestre | semestre | ano
+let mesSel = null;             // 0-11
+let anoSel = null;             // ex: 2026
+let modoEfetivas = 'total';    // total | media
+let modoFaturamento = 'total'; // total | meta
+let charts = {};
+
+/* ---------- utilidades ---------- */
+const num = (v) => {
+  if (v === null || v === undefined || v === '') return 0;
+  if (typeof v === 'number') return v;
+  return Number(String(v).replace(/\./g,'').replace(',','.').trim()) || 0;
+};
+const fmtInt = (n) => Math.round(n).toLocaleString('pt-BR');
+const fmtBRL = (n) => 'R$ ' + Math.round(n).toLocaleString('pt-BR');
+
+// Converte a data da planilha (aceita "dd/mm/aaaa" OU data ISO) em objeto Date
+function parseData(valor){
+  if (!valor) return null;
+  const s = String(valor);
+  if (s.includes('/')){
+    const [d,m,a] = s.split('/').map(x=>parseInt(x,10));
+    if (!d||!m||!a) return null;
+    return new Date(a, m-1, d);
+  }
+  const dt = new Date(s);
+  return isNaN(dt) ? null : dt;
+}
+
+/* ---------- controles ---------- */
+function rotuloPeriodo(){
+  if (periodo==='dia') return 'DO DIA';
+  if (periodo==='mes') return 'DO MÊS';
+  if (periodo==='trimestre') return 'DO TRIMESTRE';
+  if (periodo==='semestre') return 'DO SEMESTRE';
+  return 'DO ANO';
+}
+function setPeriodo(p){
+  periodo = p;
+  ['dia','mes','tri','sem','ano'].forEach(id=>document.getElementById('btn-'+id).classList.remove('active'));
+  const map = {dia:'dia',mes:'mes',trimestre:'tri',semestre:'sem',ano:'ano'};
+  document.getElementById('btn-'+map[p]).classList.add('active');
+  const txt = 'TOTAL ' + rotuloPeriodo();
+  for (let i=1;i<=6;i++) document.getElementById('ksub-'+i).textContent = txt;
+  renderizar();
+}
+function setMes(v){ mesSel = parseInt(v,10); renderizar(); }
+function setAno(v){ anoSel = parseInt(v,10); renderizar(); }
+function setModoEfetivas(m){
+  modoEfetivas = m;
+  document.querySelectorAll('#toggle-efetivas button').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`#toggle-efetivas button[onclick*="${m}"]`).classList.add('active');
+  renderizar();
+}
+function setModoFaturamento(m){
+  modoFaturamento = m;
+  document.querySelectorAll('#toggle-faturamento button').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`#toggle-faturamento button[onclick*="${m}"]`).classList.add('active');
+  renderizar();
+}
+
+// monta os menus de mês e ano a partir dos dados, e marca o mais recente
+function montarSeletores(){
+  let maisRecente = null;
+  const anos = new Set();
+  dadosBrutos.forEach(r=>{
+    const d = parseData(r[COL.data]);
+    if (d){ anos.add(d.getFullYear()); if (!maisRecente || d>maisRecente) maisRecente = d; }
+  });
+  if (!maisRecente) maisRecente = new Date();
+  if (mesSel===null) mesSel = maisRecente.getMonth();
+  if (anoSel===null) anoSel = maisRecente.getFullYear();
+
+  const selMes = document.getElementById('sel-mes');
+  selMes.innerHTML = MESES.map((m,i)=>`<option value="${i}" ${i===mesSel?'selected':''}>${m}</option>`).join('');
+
+  const listaAnos = [...anos].sort((a,b)=>b-a);
+  if (!listaAnos.includes(anoSel)) listaAnos.unshift(anoSel);
+  const selAno = document.getElementById('sel-ano');
+  selAno.innerHTML = listaAnos.map(a=>`<option value="${a}" ${a===anoSel?'selected':''}>${a}</option>`).join('');
+}
+
+// lê a tabela de metas individuais (coluna Q = valor, R = nome)
+function carregarMetas(){
+  metasIndividuais = {};
+  dadosBrutos.forEach(r=>{
+    const nome = (r[COL_META_NOME]||'').toString().trim();
+    const valor = num(r[COL_META_VALOR]);
+    if (nome && valor>0) metasIndividuais[nome.toUpperCase()] = valor;
+  });
+}
+
+/* ---------- filtra as linhas do período escolhido ---------- */
+function filtrarLinhas(){
+  if (!dadosBrutos.length) return [];
+  const ano = anoSel, mes = mesSel;
+
+  // para a visão DIA: descobre o dia mais recente dentro do mês/ano escolhido
+  let diaAlvo = null;
+  if (periodo === 'dia'){
+    dadosBrutos.forEach(r=>{
+      const d = parseData(r[COL.data]);
+      if (d && d.getFullYear()===ano && d.getMonth()===mes && (!diaAlvo || d>diaAlvo)) diaAlvo = d;
+    });
+  }
+
+  // atualiza o cabeçalho conforme o período
+  let rotuloData;
+  if (periodo==='dia')        rotuloData = diaAlvo ? diaAlvo.toLocaleDateString('pt-BR') : '—';
+  else if (periodo==='mes')   rotuloData = `${MESES[mes]} / ${ano}`;
+  else if (periodo==='trimestre') rotuloData = `${Math.floor(mes/3)+1}º Trimestre / ${ano}`;
+  else if (periodo==='semestre')  rotuloData = `${mes<6?1:2}º Semestre / ${ano}`;
+  else                        rotuloData = `Ano ${ano}`;
+  document.getElementById('hdr-data').textContent = rotuloData;
+  document.getElementById('hdr-dia-semana').textContent =
+    (periodo==='dia' && diaAlvo) ? diaAlvo.toLocaleDateString('pt-BR',{weekday:'long'}).toUpperCase() : rotuloPeriodo();
+
+  return dadosBrutos.filter(r=>{
+    const d = parseData(r[COL.data]);
+    if (!d || d.getFullYear()!==ano) return false;
+    const m = d.getMonth();
+    if (periodo==='ano') return true;
+    if (periodo==='mes') return m===mes;
+    if (periodo==='trimestre') return Math.floor(m/3)===Math.floor(mes/3);
+    if (periodo==='semestre')  return (m<6?0:1)===(mes<6?0:1);
+    if (periodo==='dia')       return diaAlvo && d.getTime()===diaAlvo.getTime();
+    return false;
+  });
+}
+
+/* ---------- monta tudo na tela ---------- */
+function renderizar(){
+  const linhas = filtrarLinhas();
+
+  // ----- KPIs -----
+  const total = (col) => linhas.reduce((s,r)=>s+num(r[col]),0);
+  // "Ligações efetivas" = soma dos blocos 1..5 (o formulário não tem campo próprio de efetivas)
+  const totalEfetivas = linhas.reduce((s,r)=> s + COL.blocos.reduce((a,b)=>a+num(r[b]),0), 0);
+  document.getElementById('kpi-discagens').textContent   = fmtInt(total(COL.discagens));
+  document.getElementById('kpi-efetivas').textContent    = fmtInt(totalEfetivas);
+  document.getElementById('kpi-cotacoes').textContent    = fmtInt(total(COL.cotacoes));
+  document.getElementById('kpi-reunioes').textContent    = fmtInt(total(COL.reunioes));
+  document.getElementById('kpi-faturamento').textContent = fmtBRL(total(COL.faturamento));
+  document.getElementById('kpi-clientes').textContent    = fmtInt(total(COL.clienteNovo));
+
+  // título da tabela conforme período
+  const titMap = {dia:'Dia',mes:'Mês',trimestre:'Trimestre',semestre:'Semestre',ano:'Ano'};
+  document.getElementById('titulo-tabela').textContent = 'Desempenho Individual — ' + titMap[periodo];
+
+  // ----- agrega por comercial -----
+  const porComercial = {};
+  linhas.forEach(r=>{
+    const nome = (r[COL.comercial]||'').toString().trim();
+    if (!nome) return;
+    if (!porComercial[nome]) porComercial[nome] =
+      { discagens:0, efetivas:0, cotacoes:0, reunioes:0, faturamento:0, clientes:0,
+        blocos:[0,0,0,0,0], fatSemana:[0,0,0,0], _dias:new Set() };
+    const c = porComercial[nome];
+    c.discagens   += num(r[COL.discagens]);
+    COL.blocos.forEach((bcol,i)=> c.blocos[i] += num(r[bcol]) );
+    c.efetivas    += COL.blocos.reduce((a,bcol)=>a+num(r[bcol]),0); // efetivas = soma dos blocos
+    c.cotacoes    += num(r[COL.cotacoes]);
+    c.reunioes    += num(r[COL.reunioes]);
+    c.clientes    += num(r[COL.clienteNovo]);
+    const fat = num(r[COL.faturamento]);
+    c.faturamento += fat;
+    // semana do mês (1 a 4) a partir do dia
+    const d = parseData(r[COL.data]);
+    if (d){
+      const semana = Math.min(3, Math.floor((d.getDate()-1)/7)); // 0..3
+      c.fatSemana[semana] += fat;
+      c._dias.add(d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate()); // dia distinto
+    }
+  });
+
+  const lista = Object.keys(porComercial).map(nome=>{
+    const c = porComercial[nome];
+    return {nome, ...c, dias:c._dias.size};
+  });
+  const porFat = [...lista].sort((a,b)=>b.faturamento-a.faturamento);
+
+  // lista COMPLETA para a tabela: todos os comerciais que já existem na planilha,
+  // com zeros para quem não lançou no período (assim ninguém some da listagem)
+  const rosterTodos = new Set();
+  dadosBrutos.forEach(r=>{ const n=(r[COL.comercial]||'').toString().trim(); if(n) rosterTodos.add(n); });
+  const vazio = {discagens:0,efetivas:0,cotacoes:0,reunioes:0,faturamento:0,clientes:0,blocos:[0,0,0,0,0],fatSemana:[0,0,0,0],dias:0};
+  const listaTabela = [...rosterTodos].map(nome=>{
+    const c = porComercial[nome];
+    return c ? {nome, ...c, dias:c._dias.size} : {nome, ...vazio};
+  }).sort((a,b)=> (b.faturamento-a.faturamento) || (b.efetivas-a.efetivas) || a.nome.localeCompare(b.nome));
+
+  // ----- tabela -----
+  const tbody = document.getElementById('tabela-body');
+  tbody.innerHTML = listaTabela.map((c,i)=>`
+    <tr class="${i===0 && c.faturamento>0 ? 'linha-top' : ''} ${c.faturamento<=0 ? 'linha-zero' : ''}">
+      <td><span class="rank-badge">${i+1}</span></td>
+      <td>${c.nome}</td>
+      <td>${fmtInt(c.discagens)}</td>
+      <td>${fmtInt(c.efetivas)}</td>
+      <td>${fmtInt(c.cotacoes)}</td>
+      <td>${fmtInt(c.reunioes)}</td>
+      <td class="fat-cell">${fmtBRL(c.faturamento)}</td>
+      <td>${fmtInt(c.clientes)}</td>
+    </tr>`).join('') || `<tr><td colspan="8" style="text-align:center;padding:30px;color:#9aa6b2">Sem lançamentos neste período</td></tr>`;
+
+  // dias em que a EQUIPE lançou no período (divisor único da média/dia)
+  const diasEquipeSet = new Set();
+  linhas.forEach(r=>{
+    const d = parseData(r[COL.data]);
+    if (d) diasEquipeSet.add(d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate());
+  });
+  const diasEquipe = Math.max(1, diasEquipeSet.size);
+
+  try { desenharGraficos(lista, porFat, diasEquipe); }
+  catch(err){ console.error('Erro ao desenhar gráficos:', err); avisarGraficos(); }
+}
+
+// aviso amigável dentro de cada painel de gráfico, sem quebrar o resto
+function avisarGraficos(){
+  const msg = '<div style="display:grid;place-items:center;height:100%;color:#9aa6b2;font-size:13px;text-align:center;padding:20px">Não foi possível carregar os gráficos<br><small>(verifique a conexão de internet)</small></div>';
+  ['chartBlocos','chartEfetivas','chartFaturamento'].forEach(id=>{
+    const cv = document.getElementById(id);
+    if (cv && cv.parentElement) cv.parentElement.innerHTML = msg;
+  });
+}
+
+/* ---------- gráficos ---------- */
+const PALETA = ['#62b81e','#2f7ed8','#e8a33d','#9b59b6','#e25c5c','#1abc9c','#34546e','#d96fa8','#7cc83a','#5b8def','#c9a227','#16a085'];
+
+// recria os canvases (caso algum tenha sido substituído por mensagem)
+function prepararCanvas(){
+  const boxes = { 'box-blocos':'chartBlocos', 'box-efetivas':'chartEfetivas', 'box-faturamento':'chartFaturamento' };
+  for (const [box,canvas] of Object.entries(boxes)){
+    const el = document.getElementById(box);
+    if (el) el.innerHTML = `<canvas id="${canvas}"></canvas>`;
+  }
+}
+
+function desenharGraficos(lista, porFat, diasEquipe){
+  if (typeof Chart === 'undefined' || window.__chartFalhou){ avisarGraficos(); return; }
+  Object.values(charts).forEach(c=>c && c.destroy());
+  charts = {};
+  prepararCanvas();
+  Chart.defaults.font.family = 'Figtree';
+  Chart.defaults.color = '#57636f';
+
+  // plugin que escreve o total no topo de cada barra empilhada
+  const totalNoTopo = {
+    id:'totalNoTopo',
+    afterDatasetsDraw(chart){
+      const {ctx} = chart;
+      const meta0 = chart.getDatasetMeta(0);
+      if (!meta0 || !meta0.data) return;
+      ctx.save();
+      ctx.font='700 13px Archivo'; ctx.fillStyle='#14202e'; ctx.textAlign='center';
+      meta0.data.forEach((_,idx)=>{
+        let soma=0, topo=Infinity;
+        chart.data.datasets.forEach((ds,di)=>{
+          soma += Number(ds.data[idx])||0;
+          const el = chart.getDatasetMeta(di).data[idx];
+          if (el && el.y < topo) topo = el.y;
+        });
+        if (soma>0) ctx.fillText(fmtInt(soma), meta0.data[idx].x, topo-8);
+      });
+      ctx.restore();
+    }
+  };
+
+  // 1) Eixo X = comerciais; cada BLOCO é uma cor (empilhado)
+  const CORES_BLOCO = ['#0e5aa7','#1e88c9','#15c2d8','#42cda0','#7fd13b'];
+  const LEGENDA_BLOCO = ['Bloco 1','Bloco 2','Bloco 3','Bloco 4','Bloco 5'];
+  charts.blocos = new Chart(document.getElementById('chartBlocos'),{
+    type:'bar',
+    data:{
+      labels: lista.map(c=>c.nome),
+      datasets: LEGENDA_BLOCO.map((nome,bi)=>({
+        label:nome,
+        data: lista.map(c=>c.blocos[bi]),
+        backgroundColor:CORES_BLOCO[bi], borderRadius:2, stack:'b'
+      }))
+    },
+    options:{
+      maintainAspectRatio:false, responsive:true,
+      plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12, font:{size:11}, padding:10 } } },
+      scales:{
+        x:{ stacked:true, grid:{display:false}, ticks:{ font:{size:11,weight:'600'} } },
+        y:{ stacked:true, grid:{color:'#eef1f5'}, beginAtZero:true }
+      }
+    },
+    plugins:[totalNoTopo]
+  });
+
+  // 2) EFETIVAS por comercial — Total OU Média/dia (ciano GODI)
+  const usarMedia = (modoEfetivas==='media');
+  const ef = lista.map(c=>({
+    nome:c.nome,
+    valor: usarMedia ? c.efetivas/diasEquipe : c.efetivas
+  })).sort((a,b)=>b.valor-a.valor);
+  charts.efetivas = new Chart(document.getElementById('chartEfetivas'),{
+    type:'bar',
+    data:{ labels:ef.map(c=>c.nome),
+      datasets:[{ data:ef.map(c=>c.valor), backgroundColor:'#15c2d8', borderRadius:5, barThickness:'flex', maxBarThickness:18 }] },
+    options:{
+      indexAxis:'y', maintainAspectRatio:false, responsive:true,
+      plugins:{ legend:{display:false},
+        tooltip:{ callbacks:{ label:(c)=> usarMedia
+          ? c.parsed.x.toFixed(1)+' efetivas/dia'
+          : fmtInt(c.parsed.x)+' efetivas' } } },
+      scales:{ x:{ grid:{color:'#eef1f5'}, beginAtZero:true,
+                   ticks:{ callback:(v)=> usarMedia ? v.toFixed(0) : v } },
+               y:{ grid:{display:false}, ticks:{font:{size:11,weight:'600'}} } }
+    }
+  });
+
+  // 3) FATURAMENTO por comercial — Total (cores por semana) OU % da Meta
+  const cv = document.getElementById('chartFaturamento');
+  if (modoFaturamento==='meta'){
+    // % da meta individual (coluna Q valor, R nome)
+    const semMetas = Object.keys(metasIndividuais).length===0;
+    if (semMetas){
+      cv.parentElement.innerHTML = '<div style="display:grid;place-items:center;height:100%;color:#9aa6b2;font-size:13px;text-align:center;padding:20px">Metas individuais não encontradas<br><small>(esperado: coluna Q = valor, coluna R = comercial)</small></div>';
+    } else {
+      const md = porFat.map(c=>{
+        const meta = metasIndividuais[c.nome.toUpperCase()] || 0;
+        return { nome:c.nome, pct: meta>0 ? (c.faturamento/meta)*100 : 0, fat:c.faturamento, meta };
+      }).sort((a,b)=>b.pct-a.pct);
+      const corMeta = (p)=> p>=100 ? '#3fb64f' : p>=70 ? '#15c2d8' : '#e8a33d';
+      charts.faturamento = new Chart(cv,{
+        type:'bar',
+        data:{ labels:md.map(c=>c.nome),
+          datasets:[{ data:md.map(c=>Math.round(c.pct)), backgroundColor:md.map(c=>corMeta(c.pct)),
+                      borderRadius:5, barThickness:'flex', maxBarThickness:18 }] },
+        options:{
+          indexAxis:'y', maintainAspectRatio:false, responsive:true,
+          plugins:{ legend:{display:false},
+            tooltip:{ callbacks:{ label:(c)=>{ const i=c.dataIndex;
+              return `${Math.round(md[i].pct)}%  (${fmtBRL(md[i].fat)} de ${fmtBRL(md[i].meta)})`; } } } },
+          scales:{ x:{ grid:{color:'#eef1f5'}, beginAtZero:true, suggestedMax:100, ticks:{ callback:(v)=>v+'%' } },
+                   y:{ grid:{display:false}, ticks:{font:{size:11,weight:'600'}} } }
+        }
+      });
+    }
+  } else {
+    // Total com cores por semana (1 a 4)
+    const CORES_SEMANA = ['#0d4f93','#1f86cb','#46b3e6','#9bd4f0'];
+    charts.faturamento = new Chart(cv,{
+      type:'bar',
+      data:{ labels:porFat.map(c=>c.nome),
+        datasets:[1,2,3,4].map((s,si)=>({
+          label:'Semana '+s,
+          data:porFat.map(c=>c.fatSemana[si]),
+          backgroundColor:CORES_SEMANA[si], borderRadius:2, stack:'f'
+        })) },
+      options:{
+        indexAxis:'y', maintainAspectRatio:false, responsive:true,
+        plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12, font:{size:11}, padding:8 } },
+          tooltip:{ callbacks:{ label:(c)=> c.dataset.label+': '+fmtBRL(c.parsed.x) } } },
+        scales:{ x:{ stacked:true, grid:{color:'#eef1f5'}, beginAtZero:true, ticks:{ callback:(v)=> v>=1000? (v/1000)+'k' : v } },
+                 y:{ stacked:true, grid:{display:false}, ticks:{font:{size:11,weight:'600'}} } }
+      }
+    });
+  }
+}
+
+/* ---------- relógio do cabeçalho ---------- */
+function tique(){
+  document.getElementById('hdr-hora').textContent =
+    new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+setInterval(tique,1000); tique();
+
+/* ---------- busca os dados na planilha ---------- */
+async function carregar(){
+  try{
+    const resp = await fetch(`${API_URL}?action=dados`);
+    const json = await resp.json();
+    if (!Array.isArray(json) || json.length < 2) throw new Error('vazio');
+    dadosBrutos = json.slice(1); // remove o cabeçalho
+    carregarMetas();
+    montarSeletores();
+    document.getElementById('status').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+    renderizar();
+  }catch(e){
+    document.getElementById('status').innerHTML =
+      '⚠️ Não consegui carregar os dados.<br><small style="font-weight:500">Verifique a URL da planilha no topo do arquivo. ('+e.message+')</small>';
+  }
+}
+carregar();
+setInterval(carregar, 5*60*1000); // recarrega a cada 5 minutos
+</script>
+</body>
+</html>
