@@ -9,8 +9,11 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://script.google.com/macro
 console.log("URL de Conexão do Axios:", API_URL);
 
 const parseBrazilianCurrency = (valor) => {
-  if (!valor) return 0;
-  const limpo = valor.toString().replace(/\./g, '').replace(',', '.');
+  if (valor === null || valor === undefined || valor === '') return 0;
+  // Já vem como número do Google Sheets (getValues) — usa direto, sem apagar o decimal
+  if (typeof valor === 'number') return valor;
+  // Só aqui é texto no formato BR ("195.160,93"): ponto = milhar, vírgula = decimal
+  const limpo = valor.toString().trim().replace(/\./g, '').replace(',', '.');
   return parseFloat(limpo) || 0;
 };
 
