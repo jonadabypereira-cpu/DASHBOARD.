@@ -93,8 +93,8 @@ function App() {
       if (Array.isArray(resposta.data) && resposta.data.length > 1) {
         setDados(resposta.data);
         const linhaDados = resposta.data[1];
-        setMetaMensal(parseBrazilianCurrency(linhaDados[14]));
-        setTotalFaturamento(parseBrazilianCurrency(linhaDados[15]));
+        setMetaMensal(parseBrazilianCurrency(linhaDados[15]));
+        setTotalFaturamento(parseBrazilianCurrency(linhaDados[16]));
       }
     } catch (error) { console.error("ERRO AO CARREGAR:", error); }
   };
