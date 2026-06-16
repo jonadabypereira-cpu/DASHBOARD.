@@ -1,20 +1,12 @@
-import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
-const GaugeChart = ({ faturamento, meta }) => {
-  // Cálculo matemático real e dinâmico
-  const percentual = meta > 0 ? (faturamento / meta) * 100 : 0;
-  
-  // Limita o preenchimento do gráfico a 100%, mas mantém o cálculo real
-  const valorVisual = Math.min(Math.max(percentual, 0), 100);
-  
+const GaugeChart = ({ percentual }) => {
   const data = [
-    { value: valorVisual },
-    { value: 100 - valorVisual }
+    { value: percentual },
+    { value: 100 - percentual }
   ];
 
-  // Lógica de cores: Verde abaixo de 100, Dourado se bater a meta
-  const COLORS = percentual >= 100 ? ['#FFD700', '#1a2a3a'] : ['#39ff14', '#1a2a3a'];
+  const COLORS = ['#39ff14', '#1a2a3a'];
 
   return (
     <ResponsiveContainer width="100%" height={200}>
@@ -35,14 +27,15 @@ const GaugeChart = ({ faturamento, meta }) => {
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
         </Pie>
+        {/* Adicionando o texto centralizado dentro do gráfico */}
         <text 
           x="50%" 
           y="70%" 
           textAnchor="middle" 
           dominantBaseline="middle" 
-          style={{ fontSize: '28px', fontWeight: 'bold', fill: '#ffffff' }}
+          style={{ fontSize: '45px', fontWeight: 'bold', fill: '#ffffff' }}
         >
-          {percentual.toFixed(1)}%
+          {percentual}%
         </text>
       </PieChart>
     </ResponsiveContainer>
