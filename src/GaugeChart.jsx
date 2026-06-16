@@ -1,12 +1,16 @@
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
 const GaugeChart = ({ percentual }) => {
+  // Garante que o gráfico não quebre e exibe o preenchimento total se > 100
+  const valorVisual = Math.min(Math.max(percentual, 0), 100);
+  
   const data = [
-    { value: percentual },
-    { value: 100 - percentual }
+    { value: valorVisual },
+    { value: 100 - valorVisual }
   ];
 
-  const COLORS = ['#39ff14', '#1a2a3a'];
+  // Se bateu a meta (ou passou), muda a cor para Destaque/Ouro
+  const COLORS = percentual >= 100 ? ['#FFD700', '#1a2a3a'] : ['#39ff14', '#1a2a3a'];
 
   return (
     <ResponsiveContainer width="100%" height={200}>
@@ -27,19 +31,17 @@ const GaugeChart = ({ percentual }) => {
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
         </Pie>
-        {/* Adicionando o texto centralizado dentro do gráfico */}
         <text 
           x="50%" 
           y="70%" 
           textAnchor="middle" 
           dominantBaseline="middle" 
-          style={{ fontSize: '45px', fontWeight: 'bold', fill: '#ffffff' }}
+          style={{ fontSize: '30px', fontWeight: 'bold', fill: '#ffffff' }}
         >
+          {/* Exibe o valor real, não o visual limitado */}
           {percentual}%
         </text>
       </PieChart>
     </ResponsiveContainer>
   );
 };
-
-export default GaugeChart;
