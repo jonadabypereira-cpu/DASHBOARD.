@@ -115,6 +115,12 @@
       background:var(--card); border:1.5px solid var(--line); border-radius:10px;
       padding:9px 12px; cursor:pointer; box-shadow:var(--shadow-sm);
     }
+    .seletor input[type="date"]{
+      font-family:'Figtree'; font-weight:600; font-size:13px; color:var(--navy);
+      background:var(--card); border:1.5px solid var(--line); border-radius:10px;
+      padding:8px 12px; cursor:pointer; box-shadow:var(--shadow-sm);
+    }
+    .seletor .liga{ font-size:12px; font-weight:700; color:var(--ink-soft); }
     /* mini toggle dentro dos painéis */
     .panel-head{ display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
     .panel-head h2{ margin-bottom:0; }
@@ -259,7 +265,7 @@
     </div>
   </header>
 
-  <!-- CONTROLES: período + mês + ano -->
+  <!-- CONTROLES: período + mês + ano + intervalo -->
   <div class="controles">
     <div class="toggle" id="periodo-toggle">
       <button id="btn-dia" class="active" onclick="setPeriodo('dia')">DIA</button>
@@ -267,10 +273,16 @@
       <button id="btn-tri" onclick="setPeriodo('trimestre')">TRIMESTRE</button>
       <button id="btn-sem" onclick="setPeriodo('semestre')">SEMESTRE</button>
       <button id="btn-ano" onclick="setPeriodo('ano')">ANO</button>
+      <button id="btn-intervalo" onclick="setPeriodo('intervalo')">PERÍODO</button>
     </div>
-    <div class="seletor">
+    <div class="seletor" id="seletor-mes-ano">
       <select id="sel-mes" onchange="setMes(this.value)"></select>
       <select id="sel-ano" onchange="setAno(this.value)"></select>
+    </div>
+    <div class="seletor" id="seletor-intervalo" style="display:none">
+      <input type="date" id="data-inicio" onchange="setIntervalo()">
+      <span class="liga">até</span>
+      <input type="date" id="data-fim" onchange="setIntervalo()">
     </div>
   </div>
 
@@ -362,9 +374,11 @@ const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Ag
 
 let dadosBrutos = [];          // todas as linhas da planilha (sem cabeçalho)
 let metasIndividuais = {};     // { NOME: valorMeta }
-let periodo = 'dia';           // dia | mes | trimestre | semestre | ano
+let periodo = 'dia';           // dia | mes | trimestre | semestre | ano | intervalo
 let mesSel = null;             // 0-11
 let anoSel = null;             // ex: 2026
+let dataInicioSel = null;      // Date | null (para periodo='intervalo')
+let dataFimSel = null;         // Date | null (para periodo='intervalo')
 let modoEfetivas = 'total';    // total | media
 let modoFaturamento = 'total'; // total | meta
 let charts = {};
@@ -391,21 +405,63 @@ function parseData(valor){
   return isNaN(dt) ? null : dt;
 }
 
+// Converte "yyyy-mm-dd" (valor de <input type="date">) em Date local, sem timezone shift
+function parseDataInput(valor){
+  if (!valor) return null;
+  const [a,m,d] = valor.split('-').map(x=>parseInt(x,10));
+  if (!a||!m||!d) return null;
+  return new Date(a, m-1, d);
+}
+
 /* ---------- controles ---------- */
 function rotuloPeriodo(){
   if (periodo==='dia') return 'DO DIA';
   if (periodo==='mes') return 'DO MÊS';
   if (periodo==='trimestre') return 'DO TRIMESTRE';
   if (periodo==='semestre') return 'DO SEMESTRE';
+  if (periodo==='intervalo') return 'DO PERÍODO';
   return 'DO ANO';
 }
 function setPeriodo(p){
   periodo = p;
-  ['dia','mes','tri','sem','ano'].forEach(id=>document.getElementById('btn-'+id).classList.remove('active'));
-  const map = {dia:'dia',mes:'mes',trimestre:'tri',semestre:'sem',ano:'ano'};
+  ['dia','mes','tri','sem','ano','intervalo'].forEach(id=>document.getElementById('btn-'+id).classList.remove('active'));
+  const map = {dia:'dia',mes:'mes',trimestre:'tri',semestre:'sem',ano:'ano',intervalo:'intervalo'};
   document.getElementById('btn-'+map[p]).classList.add('active');
   const txt = 'TOTAL ' + rotuloPeriodo();
   for (let i=1;i<=6;i++) document.getElementById('ksub-'+i).textContent = txt;
+
+  // alterna entre seletor mês/ano e seletor de intervalo de datas
+  const ehIntervalo = (p === 'intervalo');
+  document.getElementById('seletor-mes-ano').style.display = ehIntervalo ? 'none' : 'flex';
+  document.getElementById('seletor-intervalo').style.display = ehIntervalo ? 'flex' : 'none';
+
+  if (ehIntervalo){
+    // primeira vez: preenche com um intervalo padrão razoável (mês atual até hoje)
+    const inicioInput = document.getElementById('data-inicio');
+    const fimInput = document.getElementById('data-fim');
+    if (!inicioInput.value || !fimInput.value){
+      let base = null;
+      dadosBrutos.forEach(r=>{ const d=parseData(r[COL.data]); if (d && (!base||d>base)) base = d; });
+      if (!base) base = new Date();
+      const inicioPadrao = new Date(base.getFullYear(), base.getMonth(), 1);
+      inicioInput.value = toInputDate(inicioPadrao);
+      fimInput.value = toInputDate(base);
+    }
+    setIntervalo();
+    return; // setIntervalo() já chama renderizar()
+  }
+
+  renderizar();
+}
+function toInputDate(d){
+  const pad = (n)=> String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function setIntervalo(){
+  const ini = parseDataInput(document.getElementById('data-inicio').value);
+  const fim = parseDataInput(document.getElementById('data-fim').value);
+  dataInicioSel = ini;
+  dataFimSel = fim;
   renderizar();
 }
 function setMes(v){ mesSel = parseInt(v,10); renderizar(); }
@@ -457,6 +513,28 @@ function carregarMetas(){
 /* ---------- filtra as linhas do período escolhido ---------- */
 function filtrarLinhas(){
   if (!dadosBrutos.length) return [];
+
+  // ----- período customizado: intervalo de datas -----
+  if (periodo === 'intervalo'){
+    const ini = dataInicioSel, fim = dataFimSel;
+    let rotuloData;
+    if (ini && fim) rotuloData = `${ini.toLocaleDateString('pt-BR')} — ${fim.toLocaleDateString('pt-BR')}`;
+    else if (ini) rotuloData = `A partir de ${ini.toLocaleDateString('pt-BR')}`;
+    else if (fim) rotuloData = `Até ${fim.toLocaleDateString('pt-BR')}`;
+    else rotuloData = 'Selecione o período';
+    document.getElementById('hdr-data').textContent = rotuloData;
+    document.getElementById('hdr-dia-semana').textContent = rotuloPeriodo();
+
+    if (!ini && !fim) return [];
+    return dadosBrutos.filter(r=>{
+      const d = parseData(r[COL.data]);
+      if (!d) return false;
+      if (ini && d < ini) return false;
+      if (fim && d > fim) return false;
+      return true;
+    });
+  }
+
   const ano = anoSel, mes = mesSel;
 
   // para a visão DIA: descobre o dia mais recente dentro do mês/ano escolhido
@@ -508,7 +586,7 @@ function renderizar(){
   document.getElementById('kpi-clientes').textContent    = fmtInt(total(COL.clienteNovo));
 
   // título da tabela conforme período
-  const titMap = {dia:'Dia',mes:'Mês',trimestre:'Trimestre',semestre:'Semestre',ano:'Ano'};
+  const titMap = {dia:'Dia',mes:'Mês',trimestre:'Trimestre',semestre:'Semestre',ano:'Ano',intervalo:'Período'};
   document.getElementById('titulo-tabela').textContent = 'Desempenho Individual — ' + titMap[periodo];
 
   // ----- agrega por comercial -----
